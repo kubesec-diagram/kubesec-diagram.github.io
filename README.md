@@ -8,6 +8,7 @@ It's not complete (but you are welcome to submitt a PR), nor is it perfect, it i
 It might however help you to discuss kubernetes in a security-context with your team, or just to get a better understanding yourself.
 
 The drawing is most likely an overkill. It is not ment as a "solution" or design.
+Also, it is on-prem... For non on-prem, it might not be that relevant.
 
 ## Where does it come from?
 
@@ -22,6 +23,6 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 * Create issues with fixes, improvements and suggestions.
 * Create pull-requests on the drawio file with details about the changes you did.
 
-## Diagram ([download](https://raw.githubusercontent.com/lars-solberg/kubesec-diagram/main/diagram.png))
+## Diagram
 
 ![kubesec-diagram](kubesec-diagram.png)
