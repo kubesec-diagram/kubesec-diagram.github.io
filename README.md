@@ -17,12 +17,20 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 ## Changelog
 
 * v1 (2024-12-17): Released to the public
+* v2 (2025-01-07)
+  * Some clearifications and typo fixes
+  * Adding info about network interfaces (28 and 29)
+  * Adding focus priorites colors
 
 ## How to contribute
 
 * Create issues with fixes, improvements and suggestions.
 * Create pull-requests on the drawio file with details about the changes you did.
+* To generate a new export using draw-io, use
+  * export-as > png
+  * border width: 15px
+  * uncheck all options
 
 ## Diagram
 
-![kubesec-diagram](kubesec-diagram.png)
+![kubesec-diagram](https://github.com/lars-solberg/kubesec-diagram/blob/main/kubesec-diagram.png?raw=true)
