@@ -16,11 +16,16 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 
 ## Changelog
 
-* v1 (2024-12-17): Released to the public
+* v3 (2025-01-10)
+  * More typo and visual fixes
+  * Adding 29 about kubernetes distroes
+  * Adding 30 about service portal
+  * Replacing "Crossplane" box with more generic info.
 * v2 (2025-01-07)
   * Some clearifications and typo fixes
   * Adding info about network interfaces (28 and 29)
   * Adding focus priorites colors
+* v1 (2024-12-17): Released to the public
 
 ## How to contribute
 
@@ -28,9 +33,10 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 * Create pull-requests on the drawio file with details about the changes you did.
 * To generate a new export using draw-io, use
   * export-as > png
-  * border width: 15px
+  * border width: 15
   * uncheck all options
+* Export as svg as well
 
 ## Diagram
 
-![kubesec-diagram](https://github.com/lars-solberg/kubesec-diagram/blob/main/kubesec-diagram.png?raw=true)
+![kubesec-diagram](./kubesec-diagram.svg)
