@@ -16,6 +16,13 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 
 ## Changelog
 
+* v4 (2025-03-10)
+  * Putting some items inside groups with additional information
+  * Updating some descriptions
+  * Better separation of namespaced vs cluster resources. More namespace info added as 31 and 32
+  * Clearifications in 5 about where policies can be defined
+  * Adding some example traffic flows, ingress and egress. Made traffic flow more intuitive
+  * Clearification note on Deployment object. It's the same as the single-object Deployments in the drawing
 * v3 (2025-01-10)
   * More typo and visual fixes
   * Adding 29 about kubernetes distroes
