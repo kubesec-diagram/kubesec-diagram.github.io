@@ -16,6 +16,10 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 
 ## Changelog
 
+* v5 (2025-05-02)
+  * Operator vs service owner mixup fix
+  * Making it clearer where RBAC is in the API
+  * Separating network interfaces in overlay and underlay making it more clear how they differ
 * v4 (2025-03-10)
   * Putting some items inside groups with additional information
   * Updating some descriptions
