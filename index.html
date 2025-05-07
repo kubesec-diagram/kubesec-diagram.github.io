@@ -198,7 +198,7 @@
 
         const config = {
             markerScale: 0.01,
-            tooltipMinWidth: 320,
+            tooltipMinWidth: 380,
             typeStyles: {
                 'pri-1': { bg: '#c00', color: '#fff', radius: '50%', border: 'orange' },
                 'pri-2': { bg: '#f60', color: '#fff', radius: '50%', border: 'orange' },
@@ -215,47 +215,392 @@
             { type: 'info', title: 'Additional info', description: 'Explainations for better understanding of a concept' },
 
             { type: 'separator', title: 'Security posibilities' },
-            { x: 0.124, y: 0.040, type: 'pri-2', title: 'Git commits', description: 'Git commits can be signed by a physical key, like yubikey. This signature can be verifyed by ArgoCD.' },
-            { x: 0.121, y: 0.220, type: 'pri-2', title: 'Service portal', description: 'For non-admins that want resources added to the cluster, it\'s common to have something in front of the "raw" kubectl command. It depends on your customer. You can setup a web-portal to "order" resources, something that add files to git, or anything in between. It should be separated from what the administrator uses, and have an additional layer of validation.' },
-            { x: 0.911, y: 0.779, type: 'pri-2', title: 'Namespaced vs global resources', description: 'Most resources are namespace-scoped and require a namespace field. Some are cluster-wide, and others exist in both forms. Understanding this distinction is key to applying security policies correctly, whether cluster-wide or specific to app teams managing namespaces.' },
-            { x: 0.792, y: 0.040, type: 'pri-2', title: 'Kubernetes distro/os\'es', description: 'There are many ways to install a kubernetes cluster. Do some research, and choose whats right for you. Maybe a full-blown OS that you need to patch in addition to kubernetes itself is not the best choice. There are dedicated and minimal kubernetes distroes that are hardened, immutable, minimal and dedicated to run kubernetes. If you are installing a cluster for production. It might be the best choice.' },
-            { x: 0.565, y: 0.072, type: 'pri-2', title: 'Operators and infrastructure workload', description: 'This is a "typical" operator. It does something based on custom resource-types (here a Certificate). The operator controller in itself is nothing special in the cluster. It\'s just another (example) "Deployment" that has access to watch some custom kubernetes resources and act on it. The operator itself can run on a dedicated worker and the same rules applies to it as anything else.' },
-            { x: 0.681, y: 0.253, type: 'pri-1', title: 'Namespaces', description: 'Namespaces do not provide security by themselves but serve as a foundation for enforcing it. Policies like network and runtime security often use namespaces as a boundary, allowing control over isolation, inter-namespace restrictions, or exceptions for privileged namespaces.\n\nNote that Kubernetes namespaces differ from process namespaces inside a container.' },
-            { x: 0.608, y: 0.757, type: 'pri-1', title: 'The container process', description: 'The application process itself is heavely guarded using multiple enforcement mechanisms. The enforcements are defined in policies on the pod itself, the namespace, or using other controllers. Tools like Sysdig Secure uses eBPF to create rules on details what the processes and containers are doing. The container itself isn\'t awere of what rules applies to it.\n\nThere are many syscalls that are blocked inside the container as default.\nContainer escapes and 0-days (almost?) always requires badly configured capabilities, extra syscalls, custom security groups, custom mounts or tweaked kernel-namespace-settings.\n\nKernel namespaces make sure the process gets it\'s own set of pid\'s, network-interfaces and so on.\nCgroups enforces resource constraints for cpu, memory and more. It also has a freezer which in an instant can make sure the container won\'t get any more cpu cycles. Network sessions, memory info is all kept, but frozen. This is useful for inspection.\n\nContainers inside pods can also have a set of runtime policies that can make it easier to enforce certain policies like "dont run as root", "enforced UID" and so on. This is the behavior of the container that is often defined inside the Containerfile (build-file) of the container itself.\nNote! Some of the restrictions mentioned are defined on POD-level, some one container-level, and some can be defined on both.' },
-            { x: 0.607, y: 0.340, type: 'pri-1', title: 'Ingress', description: 'The kubernetes Ingress type controls the ingress-controller which can be nginx, haproxy eller ligende. They can have additional annotations for special config, auth, mod_security and so on depending on the ingress-controller used.\n\nDestination is commonly based on SNI (FQDN and domainname). The traffic will get routed to the correct service based on typical L7 data, domainname, http-verb, etc..' },
-            { x: 0.564, y: 0.364, type: 'pri-1', title: 'Default pod-to-pod traffic', description: 'Can be blocked using a default deny network policy rule.' },
-            { x: 0.525, y: 0.369, type: 'pri-1', title: 'Network control', description: 'There are many ways of controlling policies internally in the network. L3 and L4 are usually enforced by eBPF or iptables rules on the system-level. L7 are normally enforced by a proxy of some sort.\n\nSome CNI\'s also supports administrative policies, where it will be owned by the cluster administrators and cant be overwritten. Useful to enforce cluster-wide or company policies.' },
-            { x: 0.241, y: 0.685, type: 'pri-1', title: 'Image repository', description: 'Images in the image repository can be scanned before they are allowed to be stored.' },
-            { x: 0.386, y: 0.063, type: 'pri-1', title: 'API', description: 'The Kubernetes API is very robust and have multiple enforcement points. Access to it is controlled by RBAC using verbs like CREATE, PATCH, DELETE, but also api-groups and resource-types. Behind it is etcd. Anonymous access is allowed by default. The API can give you very rich audit-logging, which you should enable and send to a remote logging service.' },
-            { x: 0.375, y: 0.232, type: 'pri-2', title: 'Validating or mutating admission control', description: 'Example kyverno, which looks at the incomming yaml and validates it based on the context. This hook can also mutate the yaml to enforce certain configuration, like pod policy definitions or other configurations. Everything, including cluster-made resources needs to pass this.\n\nThere are also ways to validate image signatures and SLSA info here.' },
-            { x: 0.342, y: 0.249, type: 'pri-2', title: 'API to etcd communication', description: 'Depending on the request, if it is a read operation or write, the api communication might differ.\nExample, if you do a GET-operation, you wont be able to use an admission-controller to intercept and control the permissions since the request would not hit the admission-controller.' },
-            { x: 0.372, y: 0.335, type: 'pri-2', title: 'Secrets and configmaps', description: 'Can enter the cluster encrypted using descryption-keys available inside the cluster.' },
-            { x: 0.315, y: 0.277, type: 'pri-2', title: 'A good CNI (like Cilium)', description: 'Should be used to block as much traffic as possible. This can be done as a baseline policy. Default network-policies might not be enough.' },
-            { x: 0.595, y: 0.442, type: 'pri-2', title: 'Traffic before filters', description: 'This traffic can be encrypted using mTLS. It might not be possible to see the content of the traffic here. The traffic at this point contains a lot of metadata so it is possible to create ACL\'s based on context.' },
-            { x: 0.392, y: 0.683, type: 'pri-2', title: 'Container image', description: 'Can be configured to only run signed images. Kyverno also supports an additional check here to enforce signature and properties from the container building itself. Images attached to a container can also be scanned for vulnerabilities and flagged.' },
-            { x: 0.453, y: 0.677, type: 'pri-2', title: 'Mounted volumes and env-vars', description: 'Facts from outside the POD are normally exposed inside it as projected (read-only) volumes or environment variables. Data can also come in the for of dynamic variables from the pod-runtime (like pod-ip). If pod needs to talk to the cluster-api, the required token is mounted in as a service-user.' },
-            { x: 0.541, y: 0.720, type: 'pri-2', title: 'Network interfaces', description: 'For special network requirements, there can be special network-interface types. All with different security aspects to keep in mind. Containers can bind directly to the host interface if you let them. You can also use interfaces like macvlan if you want your pod to be a first-class citizen on your network (useful for dhcp, multicast, vlans, ..). Using multus, you can even let the container have multiple interfaces.\n\nUnderlay methods will bypass network-policies, so be careful.\n\nOverlay networks (default) are what you get if you just use your CNI as normal.' },
-            { x: 0.748, y: 0.922, type: 'pri-2', title: 'Internal pod egress', description: 'Traffic leaving a pod to another service inside the same cluster are subject to the same types of policies that can be applied to pod-ingress. It can be a separate set of rules.\nNormally, intracluster egress traffic might not be filtered as it\'s more common that the ingress  handles this. It is however possible.' },
-            { x: 0.335, y: 0.882, type: 'pri-3', title: 'Egress', description: 'Egress will be defined by using pod labels and destinations. We can have a dedicated egress ip for a specific CIDR' },
-            { x: 0.662, y: 0.778, type: 'pri-3', title: 'Custom container runtimes', description: 'There are some extra hardened container runtimes that can be configured. Example gVisor-containers comes with an additional layer of security by exposing a wrapped version of the kernel API. kata wrap around an additional virtualization layer around the container.\n\nThere are many other alternatives as well. In Openshift, it is called openshift sandbox and is based on kata.\n\nWASM is another type of application bundles/runtime that looks like will become the "next" wave of technology in cloud-native.' },
-            { x: 0.650, y: 0.637, type: 'pri-3', title: 'Exposed port', description: 'Everything inside a single pod is in the same network-namespace and can only be on 1 single node. eBPF and mTLS can therefor be applied (and enforced) to a service without it even knowing. This allows us to handle the complexity of mTLS and filtering outside the application itself, making it perfectly secure (and prefeered) and fine to expose unencrypted port 80 from a pod.' },
-            { x: 0.637, y: 0.598, type: 'pri-3', title: 'Traffic after filters', description: 'This traffic is the raw traffic the application receives. It is (at least in this case) not encrypted and can be inspected, before the traffic hits the proccess.' },
-            { x: 0.449, y: 0.460, type: 'pri-3', title: 'VirtualMachine or other workload-types', description: 'There is nothing special with other types of workload. It will act as any other workloads and depend on the same mechanismes as the rest of the cluster.' },
-            { x: 0.289, y: 0.487, type: 'pri-3', title: 'Other cluster nodes', description: 'This traffic can reach the other cluster using ip-to-ip (if configured) or encapsulated traffic. It can also be encrypted using a service-mesh.\n\nSome of the workloads should be pinned to special workers. It might be special applications that the cluster need, ingress-controllers, operators, AI workers, etc' },
-            { x: 0.351, y: 0.282, type: 'pri-3', title: 'etcd', description: 'Can be encrypted at rest' },
-            { x: 0.265, y: 0.251, type: 'pri-3', title: 'Cluster to cluster mesh (cluster-mesh)', description: 'If we have multiple cluster, we can have a cluster-mesh that gives us some of the cloud-native networking functionality. This traffic can be encrypted using mTLS as well with workload identities on each of the clusters. Using a cluster-mesh allows normal network-policies to work between clusters.' },
-            { x: 0.274, y: 0.431, type: 'pri-3', title: 'Custom Operators / orchestrators', description: 'If you setup this pattern correctly, you can get some great security benefits because you can also leverage the other patterns that also comes with kubernetes.\n\nExample, if you want a custom "object" developers can add to the cluster to get a set of resources definied by your rules. Or even to create items outside the cluster.' },
-            { x: 0.462, y: 0.102, type: 'pri-3', title: 'Internal API communication', description: 'API should only be exposed to internal operators and pods that needs to talk to the api. Should be blocked using network-policies as default' },
-            { x: 0.469, y: 0.048, type: 'pri-3', title: 'Authentication webhook', description: 'Not that commonly used. But if you want additional security on top of RBAC, you can use authentication webhook to reject requests that doesnt comply. For example, deny request to namespaces matching a certain pattern.' },
-            { x: 0.129, y: 0.415, type: 'pri-3', title: 'Service owner deployment', description: 'To add an additional layer of security, a dedicated git/argocd/flux stack for service owners that are deploying applications can be used. This argocd can be configured to only be allowed to change some resources on some namespaces.' },
-            { x: 0.429, y: 0.185, type: 'pri-2', title: 'system:masters group', description: 'There is a group hardcoded in kubernetes that bypasses the authorization part of the API.\nThis should be used when bootstraping a user or if playing with global RBAC policies (example).\nElse, make sure there are noone in this group! It should not be used.' },
+            {
+                x: 0.124, y: 0.040, type: "pri-2", title: "Signed Git Commits", description: `
+                  Git commits should be signed using a hardware security key (e.g., YubiKey)
+                  to ensure authenticity. ArgoCD can be configured to verify commit signatures
+                  before deployment.
+            `},
+            {
+                x: 0.121, y: 0.220, type: "pri-2", title: "Service Portal", description: `
+                  Non-admin users should request cluster resources through a service portal
+                  instead of direct kubectl access. This portal can generate GitOps-compatible
+                  manifests and apply policy-based validation before committing to Git.
+
+                  It must be separate from administrative tools and enforce access control
+                  and input validation.
+            `},
+            {
+                x: 0.911, y: 0.779, type: "pri-2", title: "Namespaced vs Cluster-wide Resources", description: `
+                  Understand the distinction between namespaced and cluster-wide resources
+                  to apply security policies effectively. Namespaced resources can be isolated
+                  per team, while cluster-wide resources require stricter access control and
+                  governance to prevent privilege escalation.
+            `},
+            {
+                x: 0.792, y: 0.040, type: "pri-2", title: "Kubernetes Distributions and OS Choices", description: `
+                  Choose a Kubernetes distribution and OS designed for security and minimal
+                  attack surface. Avoid general-purpose OSes that require separate patching.
+
+                  Consider immutable, minimal, and hardened distros (e.g., Talos, Flatcar,
+                  Bottlerocket) purpose-built for Kubernetes production environments.
+            `},
+            {
+                x: 0.565, y: 0.072, type: "pri-2", title: "Operators and Infrastructure Workloads", description: `
+                  Operators act on custom Kubernetes resources (e.g., Certificates) via standard
+                  controllers. They typically run as Deployments and require RBAC access to specific APIs.
+
+                  Treat operators like any other workload: apply strict access controls,
+                  run them on dedicated nodes if needed, and isolate privileges based on
+                  least privilege principles.
+            `},
+            {
+                x: 0.681, y: 0.253, type: "pri-1", title: "Namespaces", description: `
+                  Namespaces are logical boundaries used to apply security controls such as
+                  network policies, RBAC, and runtime restrictions.
+
+                  While not a security mechanism by themselves, they enable isolation between
+                  workloads and enforce separation of concerns.
+
+                  Do not confuse Kubernetes namespaces with Linux process namespaces inside containers.
+            `},
+            {
+                x: 0.608, y: 0.757, type: "pri-1", title: "The Container Process", description: `
+                  The containerized application process is governed by multiple security layers:
+                  PodSecurity policies, namespace policies, and runtime enforcement tools.
+                  Tools like Sysdig Secure use eBPF to monitor and enforce behavior without
+                  the container being aware of it.
+
+                  Syscalls are often restricted by default. Container escapes and 0-days typically
+                  require misconfigurations such as excessive Linux capabilities, unfiltered syscalls,
+                  insecure mounts, or relaxed namespace settings.
+
+                  Linux namespaces isolate PIDs, network interfaces, and other kernel features.
+                  cgroups enforce CPU/memory limits and can freeze containers for forensic inspection.
+
+                  Runtime policies can enforce behaviors like 'runAsNonRoot' or fixed UID/GID.
+                  These policies are defined at the container or pod level, and some are also
+                  baked into the image via the Dockerfile or Containerfile.
+            `},
+            {
+                x: 0.607, y: 0.340, type: "pri-1", title: "Ingress", description: `
+                  Kubernetes Ingress resources configure an ingress controller (e.g., NGINX, HAProxy)
+                  to handle inbound traffic. Controllers support annotations for TLS settings,
+                  authentication, WAF (e.g., ModSecurity), and other security features.
+
+                  Routing is typically based on SNI (FQDN) and HTTP-layer data such as path,
+                  method, or headers. Secure configuration of the ingress controller is critical,
+                  including rate limiting, header validation, and TLS hardening.
+            `},
+            {
+                x: 0.564, y: 0.364, type: "pri-1", title: "Default Pod-to-Pod Traffic", description: `
+                  By default, all pods can communicate with each other. Use a default-deny
+                  NetworkPolicy to block all traffic, then explicitly allow only necessary
+                  communication between pods.
+
+                  This is essential for achieving network segmentation and reducing the
+                  blast radius of a compromise.
+            `},
+            {
+                x: 0.525, y: 0.369, type: "pri-1", title: "Network Control", description: `
+                  Network policies can enforce L3/L4 restrictions using eBPF or iptables,
+                  while L7 policies are enforced via proxies (e.g., Envoy).
+
+                  Some CNIs support admin-level policies that cannot be overridden by
+                  namespace users, enabling enforcement of cluster-wide or organizational
+                  security standards.
+            `},
+            {
+                x: 0.241, y: 0.685, type: "pri-1", title: "Image Repository", description: `
+                  Container images should be scanned for vulnerabilities before being stored in
+                  or pulled from the image repository.
+
+                  Use tools that enforce image admission policies, signature verification,
+                  and vulnerability thresholds to block untrusted or outdated images.
+            `},
+            {
+                x: 0.386, y: 0.063, type: "pri-1", title: "Kubernetes API", description: `
+                  The Kubernetes API is the primary control plane entry point and must be tightly secured.
+                  All access passes through two main stages: authentication and authorization.
+
+                  Authentication verifies the identity of the requestor via client certificates,
+                  bearer tokens, OpenID Connect (OIDC), or webhook tokens. By default,
+                  anonymous requests are permitted and should be explicitly disabled in production clusters.
+
+                  Authorization determines whether the authenticated user is allowed to perform an action.
+                  Kubernetes supports RBAC (Role-Based Access Control) and ABAC (Attribute-Based Access Control),
+                  with RBAC being the most common. RBAC uses roles and bindings to grant fine-grained access
+                  to specific verbs (e.g., GET, CREATE), resource types, and API groups. ABAC uses JSON policies
+                  and can provide more flexible but harder-to-audit logic.
+
+                  Enable audit logging on the API server to log all authenticated requests and send them
+                  to a remote log backend for monitoring and incident response.
+            `},
+            {
+                x: 0.375, y: 0.232, type: "pri-2", title: "Validating and Mutating Admission Control", description: `
+                  Admission controllers intercept API requests after authentication and authorization,
+                  allowing for policy enforcement. Tools like Kyverno and OPA Gatekeeper can validate
+                  incoming YAML against cluster policies or mutate it to enforce configuration standards
+                  (e.g., securityContext, labels, resource limits).
+
+                  All resources—user-submitted or system-generated—must pass admission control.
+                  These controllers can also enforce image signature verification (e.g., cosign)
+                  and SLSA provenance checks to prevent untrusted artifacts from being deployed.
+            `},
+            {
+                x: 0.342, y: 0.249, type: "pri-2", title: "API to etcd Communication", description: `
+                  The Kubernetes API server communicates with etcd to persist cluster state.
+                  Read operations (e.g., GET) fetch data directly and do not trigger admission controllers.
+
+                  Admission controllers only intercept mutating operations (e.g., CREATE, UPDATE, DELETE).
+                  This means read access must be tightly controlled via RBAC/ABAC, since policies cannot
+                  be enforced via admission webhooks for those requests.
+            `},
+            {
+                x: 0.372, y: 0.335, type: "pri-2", title: "Secrets and ConfigMaps", description: `
+                  Secrets and ConfigMaps can be encrypted at rest using encryption providers
+                  configured on the API server. The decryption keys are typically stored inside
+                  the cluster, often on disk.
+
+                  For improved security, use external KMS providers (e.g., HashiCorp Vault, AWS KMS)
+                  to manage keys and prevent key compromise within the cluster.
+            `},
+            {
+                x: 0.315, y: 0.277, type: "pri-2", title: "Secure CNI (e.g., Cilium)", description: `
+                  Use a CNI plugin that supports fine-grained network policies and visibility,
+                  such as Cilium with eBPF. Define a baseline deny-all policy and explicitly allow
+                  only required traffic.
+
+                  Default Kubernetes network policies are namespace-scoped and may not cover all scenarios.
+            `},
+            {
+                x: 0.595, y: 0.442, type: 'pri-2', title: 'Traffic before filters', description: `
+                  Traffic before reaching L7 filters (e.g., Envoy) is often encrypted with mTLS.
+                  This makes payload inspection impossible, but metadata such as SNI, client identity,
+                  or source IP can still be used to enforce context-aware ACLs.
+
+                  Use this metadata to apply fine-grained policies even when the content is opaque.
+            `},
+            {
+                x: 0.392, y: 0.683, type: 'pri-2', title: 'Container image', description: `
+                  Container runtimes can be configured to only allow signed images using tools like cosign.
+                  Admission controllers such as Kyverno can enforce signature verification and additional
+                  build metadata (e.g., SLSA provenance).
+
+                  Images should also be scanned for vulnerabilities before deployment and flagged or blocked
+                  based on severity thresholds.
+            `},
+            {
+                x: 0.453, y: 0.677, type: 'pri-2', title: 'Mounted volumes and env-vars', description: `
+                  External data is often injected into pods via environment variables or projected volumes.
+                  These are typically read-only and can include ConfigMaps, Secrets, or dynamic runtime
+                  values like the pod IP or namespace.
+
+                  When a pod needs to interact with the Kubernetes API, a service account token is
+                  automatically mounted as a projected volume. Ensure proper RBAC scoping for the
+                  associated service account to avoid privilege escalation.
+            `},
+            {
+                x: 0.541, y: 0.720, type: 'pri-2', title: 'Network interfaces', description: `
+                  Pods can use different types of network interfaces depending on requirements.
+                  Containers can bind directly to the host interface, which bypasses isolation
+                  and should be avoided unless strictly required.
+
+                  With Multus, pods can be assigned multiple interfaces, and options like macvlan
+                  can make a pod appear as a native device on the physical network—useful for DHCP,
+                  multicast, or VLAN scenarios.
+
+                  Be aware: underlay networks (e.g., macvlan) typically bypass Kubernetes NetworkPolicies.
+                  Overlay networks used by most CNIs enforce policy as expected and are safer by default.
+            `},
+            {
+                x: 0.748, y: 0.922, type: 'pri-2', title: 'Internal pod egress', description: `
+                  Egress traffic from a pod to other services inside the cluster can be controlled
+                  using NetworkPolicies, similar to ingress rules. However, egress rules are often
+                  overlooked, as ingress is more commonly enforced.
+
+                  Define explicit egress policies to restrict which services a pod can communicate
+                  with, reducing lateral movement and attack surface in case of compromise.
+            `},
+            {
+                x: 0.335, y: 0.882, type: 'pri-3', title: 'Egress', description: `
+                  Egress policies control outbound traffic from pods using label selectors and
+                  destination IPs or CIDRs. These rules help prevent unauthorized external access.
+
+                  Some CNIs support assigning dedicated egress IPs per namespace or pod,
+                  enabling traceability and firewall integration for outbound traffic control.
+            `},
+            {
+                x: 0.662, y: 0.778, type: 'pri-3', title: 'Custom container runtimes', description: `
+                  Hardened container runtimes provide additional isolation layers beyond standard
+                  runtimes like runc. For example, gVisor intercepts syscalls and provides a
+                  userspace kernel implementation, while Kata Containers wrap each container in
+                  lightweight virtual machines.
+
+                  OpenShift Sandbox Containers use Kata under the hood to offer enhanced isolation.
+                  WebAssembly (WASM) is also emerging as a secure and lightweight runtime for
+                  cloud-native workloads, offering fast startup and strong sandboxing by design.
+            `},
+            {
+                x: 0.650, y: 0.637, type: 'pri-3', title: 'Exposed port', description: `
+                  All containers in a pod share the same network namespace and run on the same node.
+                  This allows enforcement of eBPF-based filters and transparent mTLS at the network level.
+
+                  With sidecars or service mesh integration, unencrypted ports like 80 can safely be
+                  exposed internally. Encryption, authentication, and access control are handled outside
+                  the application, making this a secure and preferred approach for internal services.
+            `},
+            {
+                x: 0.637, y: 0.598, type: 'pri-3', title: 'Traffic after filters', description: `
+                  This is the raw, decrypted traffic that reaches the application after passing
+                  through L7 filters or service mesh proxies. At this point, the traffic is no
+                  longer encrypted and can be inspected or modified by sidecars or host-level tools
+                  before delivery to the application process.
+
+                  Ensure that applications enforce their own validation and security controls,
+                  as traffic is now trusted and inside the protected boundary.
+            `},
+            {
+                x: 0.449, y: 0.460, type: 'pri-3', title: 'VirtualMachine or other workload-types', description: `
+                  Other workload types, such as VirtualMachines (e.g., via KubeVirt), follow the same
+                  security mechanisms as pods: RBAC, network policies, storage classes, and admission control.
+
+                  They are not inherently more privileged and should be treated like any other workload
+                  with proper isolation, policy enforcement, and monitoring in place.
+            `},
+            {
+                x: 0.289, y: 0.487, type: 'pri-3', title: 'Other cluster nodes', description: `
+                  Inter-node traffic may use direct IP-to-IP communication or be encapsulated,
+                  depending on the CNI configuration. Encryption can be applied at this level via
+                  service mesh (e.g., mTLS) or CNI-level encryption.
+
+                  Certain workloads—such as ingress controllers, operators, or AI/ML jobs—should
+                  be scheduled on dedicated nodes using taints, tolerations, or node selectors to
+                  enforce separation and reduce security risk.
+            `},
+            {
+                x: 0.351, y: 0.282, type: 'pri-3', title: 'etcd', description: `
+                  etcd stores the entire state of the Kubernetes cluster and must be protected accordingly.
+                  Enable encryption at rest using the API server's encryption provider configuration.
+
+                  Access to etcd should be strictly limited to the API server. Ensure mutual TLS is enabled,
+                  and never expose etcd directly to the network.
+            `},
+            {
+                x: 0.265, y: 0.251, type: 'pri-3', title: 'Cluster to cluster mesh (cluster-mesh)', description: `
+                  A cluster-mesh connects multiple Kubernetes clusters to enable cross-cluster
+                  communication with cloud-native networking features. This allows services in
+                  different clusters to communicate as if they were in the same network.
+
+                  Traffic can be encrypted using mTLS and authenticated using workload identities
+                  unique to each cluster. With proper setup, standard Kubernetes NetworkPolicies
+                  can be enforced across cluster boundaries.
+            `},
+            {
+                x: 0.274, y: 0.431, type: 'pri-3', title: 'Custom Operators / orchestrators', description: `
+                  Properly designed custom operators can enhance security by integrating tightly
+                  with Kubernetes-native patterns like RBAC, admission control, and CRDs.
+
+                  For example, you can expose a custom resource that developers use to request
+                  infrastructure, while the operator enforces policy-compliant templates and behavior.
+                  Operators can also manage resources external to the cluster in a controlled and auditable way.
+            `},
+            {
+                x: 0.462, y: 0.102, type: 'pri-3', title: 'Internal API communication', description: `
+                  The Kubernetes API should only be accessible to internal system components,
+                  operators, and pods that explicitly require it.
+
+                  Use default-deny NetworkPolicies to block access by default, and only allow
+                  specific namespaces or service accounts to communicate with the API server.
+                  This minimizes the attack surface and enforces least privilege access.
+            `},
+            {
+                x: 0.469, y: 0.048, type: 'pri-3', title: 'Authentication webhook', description: `
+                  Authentication webhooks are less commonly used, but can provide additional
+                  control beyond standard RBAC. They allow dynamic authentication decisions
+                  based on external systems or custom logic.
+
+                  For example, a webhook can reject requests targeting namespaces that match
+                  certain patterns or enforce organization-specific access rules in real time.
+            `},
+            {
+                x: 0.129, y: 0.415, type: 'pri-3', title: 'Service owner deployment', description: `
+                  For improved security, use a dedicated GitOps stack (e.g., ArgoCD or Flux)
+                  for service owners deploying applications. This instance should have restricted
+                  access and only be permitted to modify specific resources within designated namespaces.
+
+                  This separation ensures that service owners operate within defined boundaries,
+                  reducing the risk of misconfiguration or privilege escalation.
+            `},
+            {
+                x: 0.429, y: 0.185, type: 'pri-2', title: 'system:masters group', description: `
+                  The 'system:masters' group is a built-in Kubernetes group that bypasses the
+                  authorization layer and grants full administrative access to the cluster.
+
+                  It should only be used for initial bootstrapping or controlled RBAC testing.
+                  Ensure no regular users or service accounts are members of this group.
+                  Monitor and audit usage carefully—this group should be empty in production environments.
+            `},
 
             { type: 'separator', title: 'Info' },
-            { x: 0.545, y: 0.672, type: 'info', title: 'Multi-interface (Multus)', description: 'There can be more than one interface inside a single pod. Normally, this is done a CNI named Multus' },
-            { x: 0.364, y: 0.423, type: 'info', title: 'A Deployment', description: 'This is the inside of 1 Deployment (same for DaemonSet, StatefulSet, ...). Deployments are shown as single objects in the rest of this diagram!' },
-            { x: 0.231, y: 0.332, type: 'info', title: 'Whats an "operator"', description: '"Operators" in kubernetes can do a lot of work for you.\n\nLike the "System" object here creating some defaults and a Namespace.\nAn operator can also be used for resources outside the cluster, like here the "Tofu" object "owning" some infrastructure outside of the cluster.\n\nKubernetes doesnt need to run containers or workload to be a useful engine for other problem-spaces.' },
-            { x: 0.900, y: 0.817, type: 'info', size: 'small', title: 'Configurable capability', description: 'Capability that can be configured and/or changed if needed.' },
-            { x: 0.900, y: 0.769, type: 'info', size: 'small', title: 'Kubernetes resource', description: 'Kubernetes uses resource-types at it\'s core. Pod, Service, Deployment, Ingress, Node are all resource-types.\n\nSome of the resource-types in this diagram is made up. Most of them are optional just to show completness' },
+            {
+                x: 0.545, y: 0.672, type: 'info', title: 'Multi-interface (Multus)', description: `
+                  A pod can have multiple network interfaces using the Multus CNI plugin.
+                  This allows attaching additional networks to a pod beyond the default CNI.
+
+                  It is useful for scenarios like separating control and data planes,
+                  connecting to legacy networks, or assigning dedicated interfaces for specific protocols.
+            `},
+            {
+                x: 0.364, y: 0.423, type: 'info', title: 'A Deployment', description: `
+                  This represents the internal structure of a single Deployment. The same applies
+                  to other controller types like DaemonSets and StatefulSets.
+
+                  For simplicity, Deployments are visualized as single objects throughout this diagram.
+            `},
+            {
+                x: 0.231, y: 0.332, type: 'info', title: 'What is an "operator"', description: `
+                  Operators in Kubernetes extend the control plane by automating the management
+                  of complex applications or infrastructure using custom resources and controllers.
+
+                  For example, a system operator can create defaults like Namespaces, or manage
+                  external resources through custom objects like a "Tofu" resource controlling
+                  infrastructure outside the cluster.
+
+                  Kubernetes can serve as a generic orchestration engine—beyond just container workloads.
+            `},
+            {
+                x: 0.900, y: 0.817, type: 'info', size: 'small', title: 'Configurable capability', description: `
+                  Represents a capability in the platform or workload that can be configured
+                  or overridden as needed.
+
+                  These are typically adjustable via policies, annotations, or runtime settings.
+            `},
+            {
+                x: 0.900, y: 0.769, type: 'info', size: 'small', title: 'Kubernetes resource', description: `
+                  Kubernetes is built around resource types such as Pod, Service, Deployment,
+                  Ingress, and Node.
+
+                  Some resource types shown in this diagram are fictional or optional,
+                  included for illustrative purposes to show architectural completeness.
+
+                  Example of a simple Pod resource
+                  <hr />
+                  apiVersion: v1
+                  kind: Pod
+                  metadata:
+                    name: my-app
+                    namespace: default
+                    labels:
+                      app: demo
+                      tier: frontend
+                  spec:
+                    containers:
+                      - name: my-app
+                        image: nginx:1.25
+                        ports:
+                          - containerPort: 80
+  `         },
         ];
 
         const image = document.getElementById('main-image');
@@ -272,6 +617,20 @@
             const div = document.createElement('div');
             div.innerText = str;
             return div.innerHTML;
+        }
+
+        function cleanMultiline(str) {
+            if (!str) return '';
+
+            const raw = str.replace(/^\s*\n/, '').trimEnd();
+            const lines = raw.split('\n');
+
+            const indent = lines
+                .filter(line => line.trim())
+                .map(line => line.match(/^(\s*)/)?.[1].length || 0)
+                .reduce((a, b) => Math.min(a, b), Infinity);
+
+            return lines.map(line => line.slice(indent)).join('<br>');
         }
 
         function renderMarkers() {
@@ -304,7 +663,7 @@
 
                 const tooltip = document.createElement('div');
                 tooltip.className = 'tooltip-box';
-                tooltip.innerHTML = `<b>${index}. ${escapeHTML(ann.title)}</b><br><br>${ann.description.replace(/\n/g, '<br>')}`;
+                tooltip.innerHTML = `<b>${index}. ${escapeHTML(ann.title)}</b><br><br>${cleanMultiline(ann.description)}`;
                 tooltip.style.display = 'none';
                 tooltipLayer.appendChild(tooltip);
 
@@ -329,8 +688,9 @@
                             adjustedX = bounds.width - tipWidth / 2;
                         }
 
+                        const offsetY = (y > bounds.height / 2) ? -8 - tooltip.offsetHeight : 8;
                         tooltip.style.left = `${adjustedX}px`;
-                        tooltip.style.top = `${y + 1}px`;
+                        tooltip.style.top = `${y + offsetY}px`;
                     });
                 });
 
@@ -404,7 +764,7 @@
         <div style="display: flex; align-items: flex-start; gap: 6px;">
             <div style="background:${style.bg};color:${style.color};padding:2px 6px;border-radius:4px;white-space:nowrap;">-</div>
             <div>
-                <b>${escapeHTML(ann.title)}</b><br>${ann.description.replace(/\n/g, '<br>')}
+                <b>${escapeHTML(ann.title)}</b><br>${cleanMultiline(ann.description)}
             </div>
         </div>`;
                     list.appendChild(item);
@@ -423,7 +783,7 @@
                 ${index}
             </div>
             <div>
-                <b>${escapeHTML(ann.title)}</b><br>${ann.description.replace(/\n/g, '<br>')}
+                <b>${escapeHTML(ann.title)}</b><br>${cleanMultiline(ann.description)}
             </div>
         </div>`;
                 list.appendChild(item);
