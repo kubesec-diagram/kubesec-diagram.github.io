@@ -16,9 +16,9 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 
 ## Changelog
 
-* v7 ()
+* v7 (WIP)
   * Maybes
-    * SecurityContext and PodSecurityContext in 5 or 9?
+    * SecurityContext and PodSecurityContext?
     * Encryption of secrets, eg, EncryptionConfiguration for etcd
     * RBAC and how/where role-bindings are. clusterroles and rolebindings, escalate verb, and * policies
     * PodSecurityAdmission (PSA)
