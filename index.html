@@ -166,6 +166,43 @@
         body.annotations-active #main-image {
             max-width: calc(100vw - 500px);
         }
+
+        .footer-link {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-size: 12px;
+            color: #888;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            align-items: flex-start;
+        }
+
+        .footer-link a {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            text-decoration: none;
+            color: #4fc3f7;
+        }
+
+        .footer-link a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-link svg {
+            vertical-align: middle;
+        }
+
+        .footer-meta {
+            color: #999;
+        }
+
+        .footer-meta .version {
+            font-weight: bold;
+            color: #ccc;
+        }
     </style>
 </head>
 
@@ -191,8 +228,21 @@
         <div id="annotation-list"></div>
     </div>
 
+    <div class="footer-link">
+        <a href="https://github.com/kubesec-diagram/kubesec-diagram.github.io" target="_blank">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="16" height="16" viewBox="0 0 24 24">
+                <path
+                    d="M12 0a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.16c-3.34.73-4.04-1.61-4.04-1.61-.55-1.4-1.35-1.78-1.35-1.78-1.1-.75.08-.73.08-.73 1.22.09 1.86 1.25 1.86 1.25 1.08 1.85 2.83 1.31 3.52 1 .11-.78.42-1.31.76-1.61-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.17 0 0 1-.32 3.3 1.23a11.52 11.52 0 0 1 6 0c2.3-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.49 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.82.58A12 12 0 0 0 12 0z" />
+            </svg>
+            <span>View on GitHub</span>
+        </a>
+        <span class="footer-meta">
+            <span class="version">v6</span> • <span class="last-updated">Last updated: 2025-05-11</span>
+        </span>
+    </div>
+
     <script>
-        const debug = true;
+        const debug = false;
         let xMultiplier = 1.0;
         let yMultiplier = 1.0;
 
@@ -374,7 +424,7 @@
                   Default Kubernetes network policies are namespace-scoped and may not cover all scenarios.
             `},
             {
-                x: 0.595, y: 0.442, type: 'pri-2', title: 'Traffic before filters', description: `
+                x: 0.577, y: 0.444, type: 'pri-2', title: 'Traffic before filters', description: `
                   Traffic before reaching L7 filters (e.g., Envoy) is often encrypted with mTLS.
                   This makes payload inspection impossible, but metadata such as SNI, client identity,
                   or source IP can still be used to enforce context-aware ACLs.
@@ -382,7 +432,7 @@
                   Use this metadata to apply fine-grained policies even when the content is opaque.
             `},
             {
-                x: 0.392, y: 0.683, type: 'pri-2', title: 'Container image', description: `
+                x: 0.390, y: 0.738, type: 'pri-2', title: 'Container image', description: `
                   Container runtimes can be configured to only allow signed images using tools like cosign.
                   Admission controllers such as Kyverno can enforce signature verification and additional
                   build metadata (e.g., SLSA provenance).
@@ -391,7 +441,7 @@
                   based on severity thresholds.
             `},
             {
-                x: 0.453, y: 0.677, type: 'pri-2', title: 'Mounted volumes and env-vars', description: `
+                x: 0.505, y: 0.721, type: 'pri-2', title: 'Mounted volumes and env-vars', description: `
                   External data is often injected into pods via environment variables or projected volumes.
                   These are typically read-only and can include ConfigMaps, Secrets, or dynamic runtime
                   values like the pod IP or namespace.
@@ -401,17 +451,19 @@
                   associated service account to avoid privilege escalation.
             `},
             {
-                x: 0.541, y: 0.720, type: 'pri-2', title: 'Network interfaces', description: `
+                x: 0.440, y: 0.667, type: 'pri-2', title: 'Network interfaces (underlay)', description: `
                   Pods can use different types of network interfaces depending on requirements.
-                  Containers can bind directly to the host interface, which bypasses isolation
-                  and should be avoided unless strictly required.
-
-                  With Multus, pods can be assigned multiple interfaces, and options like macvlan
-                  can make a pod appear as a native device on the physical network—useful for DHCP,
-                  multicast, or VLAN scenarios.
+                  Containers can bind directly to the host interface, or use other means to communicate
+                  over vlans and such.
 
                   Be aware: underlay networks (e.g., macvlan) typically bypass Kubernetes NetworkPolicies.
                   Overlay networks used by most CNIs enforce policy as expected and are safer by default.
+            `},
+            {
+                x: 0.532, y: 0.667, type: 'pri-2', title: 'Network interfaces (overlay)', description: `
+                  Normal kubernetes network is done using an overlay using a CNI (Container Network Interface),
+                  like Cilium, Flannel, Calico and many others. They have various functionality and security.
+                  Example, some CNIs doesnt support egress network policies, some uses eBPF a lot, some iptables.
             `},
             {
                 x: 0.748, y: 0.922, type: 'pri-2', title: 'Internal pod egress', description: `
@@ -431,18 +483,7 @@
                   enabling traceability and firewall integration for outbound traffic control.
             `},
             {
-                x: 0.662, y: 0.778, type: 'pri-3', title: 'Custom container runtimes', description: `
-                  Hardened container runtimes provide additional isolation layers beyond standard
-                  runtimes like runc. For example, gVisor intercepts syscalls and provides a
-                  userspace kernel implementation, while Kata Containers wrap each container in
-                  lightweight virtual machines.
-
-                  OpenShift Sandbox Containers use Kata under the hood to offer enhanced isolation.
-                  WebAssembly (WASM) is also emerging as a secure and lightweight runtime for
-                  cloud-native workloads, offering fast startup and strong sandboxing by design.
-            `},
-            {
-                x: 0.650, y: 0.637, type: 'pri-3', title: 'Exposed port', description: `
+                x: 0.589, y: 0.659, type: 'pri-3', title: 'Exposed port', description: `
                   All containers in a pod share the same network namespace and run on the same node.
                   This allows enforcement of eBPF-based filters and transparent mTLS at the network level.
 
@@ -451,7 +492,7 @@
                   the application, making this a secure and preferred approach for internal services.
             `},
             {
-                x: 0.637, y: 0.598, type: 'pri-3', title: 'Traffic after filters', description: `
+                x: 0.554, y: 0.649, type: 'pri-3', title: 'Traffic after filters', description: `
                   This is the raw, decrypted traffic that reaches the application after passing
                   through L7 filters or service mesh proxies. At this point, the traffic is no
                   longer encrypted and can be inspected or modified by sidecars or host-level tools
@@ -544,7 +585,7 @@
 
             { type: 'separator', title: 'Info' },
             {
-                x: 0.545, y: 0.672, type: 'info', title: 'Multi-interface (Multus)', description: `
+                x: 0.470, y: 0.678, type: 'info', title: 'Multi-interface (Multus)', description: `
                   A pod can have multiple network interfaces using the Multus CNI plugin.
                   This allows attaching additional networks to a pod beyond the default CNI.
 
@@ -601,6 +642,54 @@
                         ports:
                           - containerPort: 80
   `         },
+            {
+                x: 0.667, y: 0.887, type: 'pri-3', title: 'Hardened container runtimes', description: `
+                  Hardened container runtimes provide additional isolation layers beyond standard
+                  runtimes like runc. For example, gVisor intercepts syscalls and provides a
+                  userspace kernel implementation, while Kata Containers wrap each container in
+                  lightweight virtual machines.
+
+                  OpenShift Sandbox Containers use Kata under the hood to offer enhanced isolation.
+            `},
+            {
+                x: 0.667, y: 0.717, type: 'pri-3', title: 'Sidecar container', description: `
+                  Sidecar containers can improve security by isolating responsibilities such as TLS termination,
+                  authentication, or logging from the main app. They are used by some service meshes (e.g., Istio),
+                  but newer approaches like eBPF and ambient meshes offer lower overhead and better scalability.
+
+                  Sidecars share the same network namespace, allowing secure localhost (127.0.0.1) communication.
+                  They can also enforce policies or proxy traffic, but increase attack surface and resource usage.
+            `},
+            {
+                x: 0.667, y: 0.754, type: 'pri-3', title: 'Init container', description: `
+                  Init containers enhance security by performing setup tasks before the main container starts,
+                  such as validating configs, downloading secrets, or verifying service dependencies.
+
+                  They run with separate images and permissions, reducing attack surface in the main container.
+                  Types include wait-for-dependency containers, secret fetchers, permission fixers (e.g., chown volumes),
+                  and environment validators. Since they run sequentially and exit before app start,
+                  they can enforce strict preconditions and avoid persistent exposure.
+            `},
+            {
+                x: 0.667, y: 0.788, type: 'pri-3', title: 'Ephemeral containers', description: `
+                  Ephemeral containers are used for live debugging of running Pods without restarting them.
+                  They provide no guarantees on lifecycle, don't support volumes, and can't be part of normal app logic.
+                  From a security standpoint, they are powerful but risky—if enabled, they allow runtime inspection,
+                  so access should be tightly controlled (e.g., via RBAC).
+
+                  They share namespaces (like network and PID) with existing containers,
+                  enabling deep introspection but also potential abuse if misused.
+            `},
+            {
+                x: 0.667, y: 0.824, type: 'pri-3', title: 'WASM containers', description: `
+                  WASM containers aim to run WebAssembly modules in place of traditional OCI containers,
+                  offering stronger isolation, faster cold starts, and lower resource usage. They don't rely on Linux syscalls,
+                  reducing attack surface and making them ideal for sandboxed, untrusted code. Projects like wasmEdge,
+                  containerd-shim-wasmedge, and Krustlet explore this in Kubernetes.
+
+                  Long-term, WASM containers could enable safer multi-tenant workloads and portable compute
+                  across cloud, edge, and browser environments.
+            `},
         ];
 
         const image = document.getElementById('main-image');

@@ -16,6 +16,31 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 
 ## Changelog
 
+* v7 ()
+  * Maybes
+    * SecurityContext and PodSecurityContext in 5 or 9?
+    * Encryption of secrets, eg, EncryptionConfiguration for etcd
+    * RBAC and how/where role-bindings are. clusterroles and rolebindings, escalate verb, and * policies
+    * PodSecurityAdmission (PSA)
+
+* v6 (2025-05-11)
+  * Removed all circles and made an interactive webpage instead, this makes it easier
+    * To update the text via source
+    * Text can be expanded without moving all the texts after
+    * Cleaner diagram
+    * Not having to worry about numbering anymore
+    * Easier to copy from it and have links or other simple html elements
+    * Created boundaries corners on upper left and buttom right so coords in % is static when editing the diagram. Never move things outside them.
+  * Replaced number-references in old changelogs to text (since numbering is shuffled/cleaned)
+  * Moving things around making the diagram wider to fit better on screen now that it's interactive
+  * Making the whole diagram wider, making room for new stuff and easier to fit on a normal screen
+  * Went trough all text and used AI to make it more clear, away with typos and less confusion.
+  * RBAC > RBAC/ABAC and some info about it
+  * Info about the dangerous "system:masters" group
+  * Added more different container types and info about them.
+  * Added information about audit-logging
+  * Moving network interface boxes outside of "container" and under "pod" where they really belong
+  * Moved repo from https://github.com/lars-solberg/kubesec-diagram to https://github.com/kubesec-diagram/kubesec-diagram.github.io and diagram at https://kubesec-diagram.github.io
 * v5 (2025-05-02)
   * Operator vs service owner mixup fix
   * Making it clearer where RBAC is in the API
@@ -23,18 +48,18 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 * v4 (2025-03-10)
   * Putting some items inside groups with additional information
   * Updating some descriptions
-  * Better separation of namespaced vs cluster resources. More namespace info added as 31 and 32
-  * Clearifications in 5 about where policies can be defined
+  * Better separation of namespaced vs cluster resources. More namespace info added as "Namespaces" and "Namespaced vs global resources"
+  * Clearifications in "The container process" about where policies can be defined
   * Adding some example traffic flows, ingress and egress. Made traffic flow more intuitive
   * Clearification note on Deployment object. It's the same as the single-object Deployments in the drawing
 * v3 (2025-01-10)
   * More typo and visual fixes
-  * Adding 29 about kubernetes distroes
-  * Adding 30 about service portal
+  * Adding "Kubernetes distro os'es" about kubernetes distroes
+  * Adding about "Service portal"
   * Replacing "Crossplane" box with more generic info.
 * v2 (2025-01-07)
   * Some clearifications and typo fixes
-  * Adding info about network interfaces (28 and 29)
+  * Adding info about "Network interfaces"
   * Adding focus priorites colors
 * v1 (2024-12-17): Released to the public
 
@@ -44,10 +69,10 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 * Create pull-requests on the drawio file with details about the changes you did.
 * To generate a new export using draw-io, use
   * export-as > png
-  * border width: 15
+  * border width: 0
   * uncheck all options
 * Export as svg as well
 
-## Diagram
+## Interactive diagram 🔍
 
-![kubesec-diagram](./kubesec-diagram.svg)
+Take a look at [kubesec-diagram.github.io](https://kubesec-diagram.github.io)
