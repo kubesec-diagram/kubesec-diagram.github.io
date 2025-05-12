@@ -27,11 +27,18 @@
         #image-wrapper {
             position: relative;
             flex-shrink: 0;
+            overflow: hidden;
         }
 
         #main-image {
             height: 100vh;
+            width: auto;
+            max-width: 100vw;
             display: block;
+        }
+
+        body.annotations-active #main-image {
+            max-width: calc(100vw - 500px);
         }
 
         #tooltip-layer {
@@ -63,7 +70,7 @@
             color: white;
             padding: 10px;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: clamp(11px, 2vw, 14px);
             min-width: 320px;
             max-width: 500px;
             white-space: pre-wrap;
@@ -156,17 +163,6 @@
             z-index: 1;
         }
 
-        #main-image {
-            height: 100vh;
-            max-width: 100vw;
-            width: auto;
-            display: block;
-        }
-
-        body.annotations-active #main-image {
-            max-width: calc(100vw - 500px);
-        }
-
         .footer-link {
             position: absolute;
             bottom: 10px;
@@ -202,6 +198,44 @@
         .footer-meta .version {
             font-weight: bold;
             color: #ccc;
+        }
+
+        /* --- Adjustments for mobile --- */
+        @media (max-width: 768px) {
+            #container {
+                display: block;
+                height: 100vh;
+                width: 100vw;
+                overflow: hidden;
+            }
+
+            #image-wrapper {
+                width: 100%;
+                height: 100%;
+                overflow: auto;
+                /* Allow panning like a map */
+                touch-action: pan-x pan-y;
+                flex-shrink: 0;
+            }
+
+            #main-image {
+                width: auto;
+                height: auto;
+                max-width: none;
+                max-height: none;
+                display: block;
+            }
+
+            .controls {
+                display: none;
+            }
+
+            .tooltip-box {
+                font-size: 11px;
+                min-width: 240px;
+                max-width: 85vw;
+                padding: 8px;
+            }
         }
     </style>
 </head>
