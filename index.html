@@ -671,8 +671,68 @@
                   Ensure no regular users or service accounts are members of this group.
                   Monitor and audit usage carefully—this group should be empty in production environments.
             `},
+            {
+                x: 0.667, y: 0.887, type: 'pri-3', title: 'Hardened container runtimes', description: `
+                  Hardened container runtimes provide additional isolation layers beyond standard
+                  runtimes like runc. For example, gVisor intercepts syscalls and provides a
+                  userspace kernel implementation, while Kata Containers wrap each container in
+                  lightweight virtual machines.
 
+                  OpenShift Sandbox Containers use Kata under the hood to offer enhanced isolation.
+            `},
+            {
+                x: 0.667, y: 0.717, type: 'pri-3', title: 'Sidecar container', description: `
+                  Sidecar containers can improve security by isolating responsibilities such as TLS termination,
+                  authentication, or logging from the main app. They are used by some service meshes (e.g., Istio),
+                  but newer approaches like eBPF and ambient meshes offer lower overhead and better scalability.
+
+                  Sidecars share the same network namespace, allowing secure localhost (127.0.0.1) communication.
+                  They can also enforce policies or proxy traffic, but increase attack surface and resource usage.
+            `},
+            {
+                x: 0.667, y: 0.754, type: 'pri-3', title: 'Init container', description: `
+                  Init containers enhance security by performing setup tasks before the main container starts,
+                  such as validating configs, downloading secrets, or verifying service dependencies.
+
+                  They run with separate images and permissions, reducing attack surface in the main container.
+                  Types include wait-for-dependency containers, secret fetchers, permission fixers (e.g., chown volumes),
+                  and environment validators. Since they run sequentially and exit before app start,
+                  they can enforce strict preconditions and avoid persistent exposure.
+            `},
+            {
+                x: 0.667, y: 0.788, type: 'pri-3', title: 'Ephemeral containers', description: `
+                  Ephemeral containers are used for live debugging of running Pods without restarting them.
+                  They provide no guarantees on lifecycle, don't support volumes, and can't be part of normal app logic.
+                  From a security standpoint, they are powerful but risky—if enabled, they allow runtime inspection,
+                  so access should be tightly controlled (e.g., via RBAC).
+
+                  They share namespaces (like network and PID) with existing containers,
+                  enabling deep introspection but also potential abuse if misused.
+            `},
+            {
+                x: 0.667, y: 0.824, type: 'pri-3', title: 'WASM containers', description: `
+                  WASM containers aim to run WebAssembly modules in place of traditional OCI containers,
+                  offering stronger isolation, faster cold starts, and lower resource usage. They don't rely on Linux syscalls,
+                  reducing attack surface and making them ideal for sandboxed, untrusted code. Projects like wasmEdge,
+                  containerd-shim-wasmedge, and Krustlet explore this in Kubernetes.
+
+                  Long-term, WASM containers could enable safer multi-tenant workloads and portable compute
+                  across cloud, edge, and browser environments.
+            `},
             { type: 'separator', title: 'Info' },
+            {
+                x: 0.029, y: 0.044, type: 'info', title: 'What is this and how to use..', description: `
+                  This is a diagram made to better understand and get an overview of kubernetes security.
+
+                  It's not complete (but you are welcome to submitt a PR/issue), nor is it perfect, it is biased and it might not be for you.
+
+                  It might however help you to discuss kubernetes in a security-context with your team, or just to get a better understanding yourself.
+
+                  The drawing is most likely an overkill. It is not ment as a "solution" or design.
+                  It's also quite busy, with a ton of elements. It's not ment to "explain" everything, but something you can sit down with and browse around and maybe learn something new.
+
+                  Also, it is on-prem... For non on-prem, it might not be that relevant.
+            `},
             {
                 x: 0.470, y: 0.678, type: 'info', title: 'Multi-interface (Multus)', description: `
                   A pod can have multiple network interfaces using the Multus CNI plugin.
@@ -731,54 +791,6 @@
                         ports:
                           - containerPort: 80
   `         },
-            {
-                x: 0.667, y: 0.887, type: 'pri-3', title: 'Hardened container runtimes', description: `
-                  Hardened container runtimes provide additional isolation layers beyond standard
-                  runtimes like runc. For example, gVisor intercepts syscalls and provides a
-                  userspace kernel implementation, while Kata Containers wrap each container in
-                  lightweight virtual machines.
-
-                  OpenShift Sandbox Containers use Kata under the hood to offer enhanced isolation.
-            `},
-            {
-                x: 0.667, y: 0.717, type: 'pri-3', title: 'Sidecar container', description: `
-                  Sidecar containers can improve security by isolating responsibilities such as TLS termination,
-                  authentication, or logging from the main app. They are used by some service meshes (e.g., Istio),
-                  but newer approaches like eBPF and ambient meshes offer lower overhead and better scalability.
-
-                  Sidecars share the same network namespace, allowing secure localhost (127.0.0.1) communication.
-                  They can also enforce policies or proxy traffic, but increase attack surface and resource usage.
-            `},
-            {
-                x: 0.667, y: 0.754, type: 'pri-3', title: 'Init container', description: `
-                  Init containers enhance security by performing setup tasks before the main container starts,
-                  such as validating configs, downloading secrets, or verifying service dependencies.
-
-                  They run with separate images and permissions, reducing attack surface in the main container.
-                  Types include wait-for-dependency containers, secret fetchers, permission fixers (e.g., chown volumes),
-                  and environment validators. Since they run sequentially and exit before app start,
-                  they can enforce strict preconditions and avoid persistent exposure.
-            `},
-            {
-                x: 0.667, y: 0.788, type: 'pri-3', title: 'Ephemeral containers', description: `
-                  Ephemeral containers are used for live debugging of running Pods without restarting them.
-                  They provide no guarantees on lifecycle, don't support volumes, and can't be part of normal app logic.
-                  From a security standpoint, they are powerful but risky—if enabled, they allow runtime inspection,
-                  so access should be tightly controlled (e.g., via RBAC).
-
-                  They share namespaces (like network and PID) with existing containers,
-                  enabling deep introspection but also potential abuse if misused.
-            `},
-            {
-                x: 0.667, y: 0.824, type: 'pri-3', title: 'WASM containers', description: `
-                  WASM containers aim to run WebAssembly modules in place of traditional OCI containers,
-                  offering stronger isolation, faster cold starts, and lower resource usage. They don't rely on Linux syscalls,
-                  reducing attack surface and making them ideal for sandboxed, untrusted code. Projects like wasmEdge,
-                  containerd-shim-wasmedge, and Krustlet explore this in Kubernetes.
-
-                  Long-term, WASM containers could enable safer multi-tenant workloads and portable compute
-                  across cloud, edge, and browser environments.
-            `},
         ];
 
         const image = document.getElementById('main-image');

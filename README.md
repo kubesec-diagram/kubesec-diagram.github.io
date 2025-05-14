@@ -2,12 +2,13 @@
 
 ## What's this?
 
-This is a digram made to better understand and get an overview of kubernetes security.
-It's not complete (but you are welcome to submitt a PR), nor is it perfect, it is biased and it might not be for you.
+This is a diagram made to better understand and get an overview of kubernetes security.
+It's not complete (but you are welcome to submitt a PR/issue), nor is it perfect, it is biased and it might not be for you.
 
 It might however help you to discuss kubernetes in a security-context with your team, or just to get a better understanding yourself.
 
 The drawing is most likely an overkill. It is not ment as a "solution" or design.
+It's also quite busy, with a ton of elements. It's not ment to "explain" everything, but something you can sit down with and browse around and maybe learn something new.
 Also, it is on-prem... For non on-prem, it might not be that relevant.
 
 ## Where does it come from?
