@@ -85,25 +85,6 @@
             text-decoration: underline;
         }
 
-        .controls {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .controls button {
-            background-color: #000c;
-            color: #fff;
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
         #annotation-list {
             flex: 1;
             height: 100vh;
@@ -171,8 +152,60 @@
             color: #888;
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 6px;
             align-items: flex-start;
+        }
+
+        .footer-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .footer-control {
+            font-size: 12px;
+            color: #4fc3f7;
+            cursor: pointer;
+            padding: 4px 0 4px 24px;
+            position: relative;
+            display: inline-block;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        .footer-control::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            border: 1px solid #4fc3f7;
+            border-radius: 2px;
+            background: transparent;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        .footer-control.active::before {
+            background: #0af;
+            border-color: #0af;
+        }
+
+        .footer-control.active::after {
+            content: "✔";
+            position: absolute;
+            left: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: #000;
+            pointer-events: none;
+        }
+
+        .footer-control:hover {
+            color: #0af;
         }
 
         .footer-link a {
@@ -200,8 +233,29 @@
             color: #ccc;
         }
 
+        .footer-github {
+            font-size: 12px;
+            color: #4fc3f7;
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .footer-github a {
+            color: #4fc3f7;
+            text-decoration: none;
+        }
+
+        .footer-github a:hover {
+            text-decoration: underline;
+        }
+
         /* --- Adjustments for mobile --- */
         @media (max-width: 768px) {
+            .footer-buttons {
+                display: none;
+            }
+
             #container {
                 display: block;
                 height: 100vh;
@@ -213,7 +267,6 @@
                 width: 100%;
                 height: 100%;
                 overflow: auto;
-                /* Allow panning like a map */
                 touch-action: pan-x pan-y;
                 flex-shrink: 0;
             }
@@ -226,29 +279,21 @@
                 display: block;
             }
 
-            .controls {
-                display: none;
-            }
-
             .tooltip-box {
                 font-size: 11px;
                 min-width: 240px;
                 max-width: 85vw;
-                /* ensure it's max 85% of viewport width */
                 padding: 8px;
                 width: auto;
             }
         }
     </style>
+
 </head>
 
 <body>
     <div id="container">
         <div id="image-wrapper">
-            <div class="controls">
-                <button id="toggle-annotations">Show Annotations</button>
-                <button id="toggle-markers">Hide Circles</button>
-            </div>
             <img id="main-image"
                 src="https://media.githubusercontent.com/media/kubesec-diagram/kubesec-diagram.github.io/refs/heads/main/kubesec-diagram.png"
                 alt="Annotated Image" />
@@ -267,13 +312,16 @@
     </div>
 
     <div class="footer-link">
-        <a href="https://github.com/kubesec-diagram/kubesec-diagram.github.io" target="_blank">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" width="16" height="16" viewBox="0 0 24 24">
-                <path
-                    d="M12 0a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.16c-3.34.73-4.04-1.61-4.04-1.61-.55-1.4-1.35-1.78-1.35-1.78-1.1-.75.08-.73.08-.73 1.22.09 1.86 1.25 1.86 1.25 1.08 1.85 2.83 1.31 3.52 1 .11-.78.42-1.31.76-1.61-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.17 0 0 1-.32 3.3 1.23a11.52 11.52 0 0 1 6 0c2.3-1.55 3.3-1.23 3.3-1.23.66 1.65.24 2.87.12 3.17.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.49 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.82.58A12 12 0 0 0 12 0z" />
-            </svg>
-            <span>View on GitHub</span>
-        </a>
+        <div class="footer-buttons">
+            <div id="toggle-annotations" class="footer-control" title="Toggle annotations">Annotations</div>
+            <div id="toggle-markers" class="footer-control" title="Toggle circles">Circles</div>
+        </div>
+        <div class="footer-github">
+            <a href="https://github.com/kubesec-diagram/kubesec-diagram.github.io" target="_blank">GitHub</a>
+            (<a href="https://github.com/kubesec-diagram/kubesec-diagram.github.io/issues" target="_blank">issues</a>)
+            <a href="https://github.com/kubesec-diagram/kubesec-diagram.github.io/stargazers" target="_blank"
+                title="Star this project">⭐</a>
+        </div>
         <span class="footer-meta">
             <span class="version">v6</span> • <span class="last-updated">Last updated: 2025-05-11</span>
         </span>
@@ -738,8 +786,6 @@
         const tooltipLayer = document.getElementById('tooltip-layer');
         const container = document.getElementById('container');
         const list = document.getElementById('annotation-list');
-        const toggleAnnBtn = document.getElementById('toggle-annotations');
-        const toggleCirclesBtn = document.getElementById('toggle-markers');
 
         let markersRendered = false;
 
@@ -920,35 +966,58 @@
             });
         }
 
-        // move listeners and event bindings outside of renderList()
-        toggleAnnBtn.addEventListener('click', () => {
-            const showing = list.classList.toggle('visible');
-            container.classList.toggle('numbered', showing);
-            document.body.classList.toggle('annotations-active', showing);
-            if (showing) {
-                renderList();
-                toggleAnnBtn.textContent = 'Hide Annotations';
-                if (container.classList.contains('hidden-markers')) {
-                    container.classList.remove('hidden-markers');
-                    toggleCirclesBtn.textContent = 'Hide Circles';
-                }
-                positionMarkers(); // 👈 legg til denne
-            } else {
-                list.innerHTML = '';
-                toggleAnnBtn.textContent = 'Show Annotations';
-                positionMarkers(); // 👈 legg til denne også
+        // Controls
+        const toggleAnnotationsBtn = document.getElementById('toggle-annotations');
+        const toggleMarkersBtn = document.getElementById('toggle-markers');
+
+        let annotationsVisible = false;
+        let markersVisible = true;
+
+        toggleMarkersBtn.classList.add('active');
+        document.body.classList.remove('annotations-active');
+        document.body.classList.remove('hidden-markers');
+
+        toggleAnnotationsBtn.addEventListener('click', () => {
+            if (!markersVisible) {
+                markersVisible = true;
+                document.body.classList.remove('hidden-markers');
+                toggleMarkersBtn.classList.add('active');
             }
+
+            annotationsVisible = !annotationsVisible;
+            toggleAnnotationsBtn.classList.toggle('active', annotationsVisible);
+
+            if (annotationsVisible) {
+                document.body.classList.add('annotations-active');
+                renderList();
+            } else {
+                document.body.classList.remove('annotations-active');
+                list.innerHTML = '';
+            }
+
+            // Always reposition markers when layout might change
+            positionMarkers();
         });
 
-        toggleCirclesBtn.addEventListener('click', () => {
-            const nowHidden = container.classList.toggle('hidden-markers');
-            toggleCirclesBtn.textContent = nowHidden ? 'Show Circles' : 'Hide Circles';
-            if (nowHidden) {
+        toggleMarkersBtn.addEventListener('click', () => {
+            markersVisible = !markersVisible;
+            toggleMarkersBtn.classList.toggle('active', markersVisible);
+
+            if (markersVisible) {
+                document.body.classList.remove('hidden-markers');
+            } else {
+                document.body.classList.add('hidden-markers');
+
+                annotationsVisible = false;
+                document.body.classList.remove('annotations-active');
                 list.innerHTML = '';
-                toggleAnnBtn.textContent = 'Show Annotations';
-                list.classList.remove('visible');
+                toggleAnnotationsBtn.classList.remove('active');
             }
+
+            // Always reposition markers after change
+            positionMarkers();
         });
+        // end controls
 
         image.addEventListener('load', () => {
             renderMarkers();
