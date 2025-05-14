@@ -280,7 +280,10 @@
     </div>
 
     <script>
-        const debug = false;
+        // Enable debug with a simple ?debug in the url
+        const urlParams = new URLSearchParams(window.location.search);
+        const debug = urlParams.has('debug');
+
         let xMultiplier = 1.0;
         let yMultiplier = 1.0;
 
