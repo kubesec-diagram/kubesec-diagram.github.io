@@ -17,6 +17,7 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 ## Changelog
 
 * v7 (WIP)
+  * More writings in "The Container Process"
   * Maybes
     * SecurityContext and PodSecurityContext?
     * Encryption of secrets, eg, EncryptionConfiguration for etcd

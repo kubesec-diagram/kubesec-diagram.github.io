@@ -356,8 +356,12 @@
                 x: 0.608, y: 0.757, type: "pri-1", title: "The Container Process", description: `
                   The containerized application process is governed by multiple security layers:
                   PodSecurity policies, namespace policies, and runtime enforcement tools.
-                  Tools like Sysdig Secure use eBPF to monitor and enforce behavior without
-                  the container being aware of it.
+                  Tools like Falco uses eBPF to monitor container behavior without
+                  the container being aware of it. Use tools like KubeArmor to enforce behavior.
+
+                  There are many enterprise solutions as well; Sysdig Secure, Tetragon and PrismaCloud
+                  is all worth evaluating.
+                  Some, like NeuVector are also opensource.
 
                   Syscalls are often restricted by default. Container escapes and 0-days typically
                   require misconfigurations such as excessive Linux capabilities, unfiltered syscalls,
