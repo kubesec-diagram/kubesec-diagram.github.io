@@ -292,11 +292,52 @@
 </head>
 
 <body>
+    <noscript>
+        <style>
+            body>*:not(noscript) {
+                display: none !important;
+            }
+        </style>
+        <div style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #fffbe6;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2em;
+    box-sizing: border-box;
+    font-family: sans-serif;
+    text-align: center;
+  ">
+            <h1 style="margin-bottom: 1em;">JavaScript is disabled</h1>
+            <p style="max-width: 500px;">
+                This interactive diagram requires JavaScript to function.<br><br>
+                You can either enable JavaScript in your browser settings,
+                or open the static image version directly:
+            </p>
+            <p style="margin: 1em 0;">
+                <a href="https://media.githubusercontent.com/media/kubesec-diagram/kubesec-diagram.github.io/refs/heads/main/kubesec-diagram.png"
+                    target="_blank" style="color: #007acc; text-decoration: underline;">
+                    View raw image
+                </a>
+            </p>
+            <p style="font-size: 12px; color: #666;">
+                Source: <a href="https://github.com/kubesec-diagram/kubesec-diagram.github.io" target="_blank"
+                    style="color: #007acc;">kubesec-diagram.github.io</a>
+            </p>
+        </div>
+    </noscript>
+
     <div id="container">
         <div id="image-wrapper">
-            <img id="main-image"
-                src="https://media.githubusercontent.com/media/kubesec-diagram/kubesec-diagram.github.io/refs/heads/main/kubesec-diagram.png"
-                alt="Annotated Image" />
+            <img id="main-image" src="" alt="Annotated Image" />
+
             <div id="tooltip-layer"></div>
         </div>
         <div id="debug-controls" style="display:none; gap: 6px; flex-direction: column; margin-top: 12px;">
@@ -804,6 +845,8 @@
         const list = document.getElementById('annotation-list');
 
         let markersRendered = false;
+
+        image.src = debug ? './kubesec-diagram.png' : 'https://media.githubusercontent.com/media/kubesec-diagram/kubesec-diagram.github.io/refs/heads/main/kubesec-diagram.png';
 
         function escapeHTML(str) {
             const div = document.createElement('div');

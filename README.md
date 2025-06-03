@@ -19,6 +19,8 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 
 * v7 (WIP)
   * More writings in "The Container Process"
+  * Warning and info if javascript is diabled
+  * ?debug now loads image from ./
   * Maybes
     * SecurityContext and PodSecurityContext?
     * Encryption of secrets, eg, EncryptionConfiguration for etcd
