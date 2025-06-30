@@ -27,6 +27,11 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
     * RBAC and how/where role-bindings are. clusterroles and rolebindings, escalate verb, and * policies
     * PodSecurityAdmission (PSA)
 
+* v7 (2025-06-30)
+  * More writings in "The Container Process"
+  * Warning and info if javascript is diabled
+  * ?debug now loads image from ./
+  * Duplicated namespaces defined, changed uid/gid into "user", and added UTS instead. Thanks ruatag! Fixes #2
 * v6 (2025-05-11)
   * Removed all circles and made an interactive webpage instead, this makes it easier
     * To update the text via source
