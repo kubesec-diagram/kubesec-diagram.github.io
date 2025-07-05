@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Interactive annotated security focused kubernetes diagram." />
+    <meta name="author" content="Lars Solberg" />
+
+    <link rel="icon" type="image/svg+xml"
+        href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="%23006ce0"/><circle cx="16" cy="16" r="4" fill="%23c00"/><circle cx="32" cy="16" r="4" fill="%23f60"/><circle cx="48" cy="16" r="4" fill="%23ff0"/><circle cx="16" cy="32" r="4" fill="%23ff0"/><circle cx="32" cy="32" r="4" fill="%23c00"/><circle cx="48" cy="32" r="4" fill="%23f60"/><circle cx="16" cy="48" r="4" fill="%23f60"/><circle cx="32" cy="48" r="4" fill="%23ff0"/><circle cx="48" cy="48" r="4" fill="%23c00"/></svg>'>
+
+    <title>kubesec-diagram</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            overflow: hidden;
+        }
+
+        #container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #image-wrapper {
+            position: relative;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        #main-image {
+            height: 100vh;
+            width: auto;
+            max-width: 100vw;
+            display: block;
+        }
+
+        body.annotations-active #main-image {
+            max-width: calc(100vw - 500px);
+        }
+
+        #tooltip-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .marker {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0.8;
+            z-index: 1;
+            transform: translate(-50%, -50%);
+            border: 2px solid;
+        }
+
+        .tooltip-box {
+            position: absolute;
+            background: rgba(30, 30, 30, 0.95);
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: clamp(11px, 2vw, 14px);
+            min-width: 320px;
+            max-width: 500px;
+            white-space: pre-wrap;
+            text-align: left;
+            pointer-events: auto;
+            transform: translate(-50%, 0);
+            display: none;
+        }
+
+        .tooltip-box a {
+            color: #4fc3f7;
+            text-decoration: underline;
+        }
+
+        #annotation-list {
+            flex: 1;
+            height: 100vh;
+            overflow-x: scroll;
+            overflow-y: hidden;
+            padding: 20px;
+            column-width: 260px;
+            column-gap: 32px;
+            column-fill: auto;
+        }
+
+        .annotation-item {
+            margin-bottom: 12px;
+            font-size: 14px;
+            padding: 8px;
+            border-radius: 6px;
+            break-inside: avoid;
+        }
+
+        .annotation-item:nth-child(even) {
+            background: #f9f9f9;
+        }
+
+        .annotation-item:nth-child(odd) {
+            background: #fff;
+        }
+
+        .annotation-separator {
+            display: flex;
+            align-items: center;
+            margin: 24px 0 12px;
+            font-weight: bold;
+            color: #555;
+            white-space: nowrap;
+            break-inside: avoid;
+        }
+
+        .annotation-separator::before,
+        .annotation-separator::after {
+            content: "";
+            flex: 1;
+            border-top: 1px solid #ccc;
+            margin: 0 8px;
+        }
+
+        .annotation-separator span {
+            white-space: nowrap;
+        }
+
+        .hidden-markers .marker {
+            display: none !important;
+        }
+
+        .numbered .marker::before {
+            content: attr(data-index);
+            position: relative;
+            z-index: 1;
+        }
+
+        .footer-link {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-size: 12px;
+            color: #888;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: flex-start;
+        }
+
+        .footer-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .footer-control {
+            font-size: 12px;
+            color: #4fc3f7;
+            cursor: pointer;
+            padding: 4px 0 4px 24px;
+            position: relative;
+            display: inline-block;
+            user-select: none;
+            transition: color 0.2s;
+        }
+
+        .footer-control::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            border: 1px solid #4fc3f7;
+            border-radius: 2px;
+            background: transparent;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        .footer-control.active::before {
+            background: #0af;
+            border-color: #0af;
+        }
+
+        .footer-control.active::after {
+            content: "✔";
+            position: absolute;
+            left: 2px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            color: #000;
+            pointer-events: none;
+        }
+
+        .footer-control:hover {
+            color: #0af;
+        }
+
+        .footer-link a {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            text-decoration: none;
+            color: #4fc3f7;
+        }
+
+        .footer-link a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-link svg {
+            vertical-align: middle;
+        }
+
+        .footer-meta {
+            color: #999;
+        }
+
+        .footer-meta .version {
+            font-weight: bold;
+            color: #ccc;
+        }
+
+        .footer-github {
+            font-size: 12px;
+            color: #4fc3f7;
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .footer-github a {
+            color: #4fc3f7;
+            text-decoration: none;
+        }
+
+        .footer-github a:hover {
+            text-decoration: underline;
+        }
+
+        /* --- Adjustments for mobile --- */
+        @media (max-width: 768px) {
+            .footer-buttons {
+                display: none;
+            }
+
+            #container {
+                display: block;
+                height: 100vh;
+                width: 100vw;
+                overflow: hidden;
+            }
+
+            #image-wrapper {
+                width: 100%;
+                height: 100%;
+                overflow: auto;
+                touch-action: pan-x pan-y;
+                flex-shrink: 0;
+            }
+
+            #main-image {
+                width: auto;
+                height: auto;
+                max-width: none;
+                max-height: none;
+                display: block;
+            }
+
+            .tooltip-box {
+                font-size: 11px;
+                min-width: 240px;
+                max-width: 85vw;
+                padding: 8px;
+                width: auto;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+    <noscript>
+        <style>
+            body>*:not(noscript) {
+                display: none !important;
+            }
+        </style>
+        <div style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #fffbe6;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2em;
+    box-sizing: border-box;
+    font-family: sans-serif;
+    text-align: center;
+  ">
+            <h1 style="margin-bottom: 1em;">JavaScript is disabled</h1>
+            <p style="max-width: 500px;">
+                This interactive diagram requires JavaScript to function.<br><br>
+                You can either enable JavaScript in your browser settings,
+                or open the static image version directly:
+            </p>
+            <p style="margin: 1em 0;">
+                <a href="https://media.githubusercontent.com/media/kubesec-diagram/kubesec-diagram.github.io/refs/heads/main/kubesec-diagram.png"
+                    target="_blank" style="color: #007acc; text-decoration: underline;">
+                    View raw image
+                </a>
+            </p>
+            <p style="font-size: 12px; color: #666;">
+                Source: <a href="https://github.com/kubesec-diagram/kubesec-diagram.github.io" target="_blank"
+                    style="color: #007acc;">kubesec-diagram.github.io</a>
+            </p>
+        </div>
+    </noscript>
+
+    <div id="container">
+        <div id="image-wrapper">
+            <img id="main-image" src="" alt="Annotated Image" />
+
+            <div id="tooltip-layer"></div>
+        </div>
+        <div id="debug-controls" style="display:none; gap: 6px; flex-direction: column; margin-top: 12px;">
+            <label>
+                X Multiplier: <input id="x-multiplier" type="number" step="0.001" value="1" style="width: 80px;" />
+            </label>
+            <label>
+                Y Multiplier: <input id="y-multiplier" type="number" step="0.001" value="1" style="width: 80px;" />
+            </label>
+            <button id="export-coords" style="margin-top: 8px;">Export Adjusted Annotations</button>
+        </div>
+        <div id="annotation-list"></div>
+    </div>
+
+    <div class="footer-link">
+        <div class="footer-buttons">
+            <div id="toggle-annotations" class="footer-control" title="Toggle annotations">Annotations</div>
+            <div id="toggle-markers" class="footer-control" title="Toggle circles">Circles</div>
+        </div>
+        <div class="footer-github">
+            <a href="https://github.com/kubesec-diagram/kubesec-diagram.github.io" target="_blank">GitHub</a>
+            (<a href="https://github.com/kubesec-diagram/kubesec-diagram.github.io/issues" target="_blank">issues</a>)
+            <a href="https://github.com/kubesec-diagram/kubesec-diagram.github.io/stargazers" target="_blank"
+                title="Star this project">⭐</a>
+        </div>
+        <span class="footer-meta">
+            <span class="version">v6</span> • <span class="last-updated">Last updated: 2025-05-11</span>
+        </span>
+    </div>
+
+    <script>
+        // Enable debug with a simple ?debug in the url
+        const urlParams = new URLSearchParams(window.location.search);
+        const debug = urlParams.has('debug');
+
+        let xMultiplier = 1.0;
+        let yMultiplier = 1.0;
+
+        const config = {
+            markerScale: 0.01,
+            tooltipMinWidth: 380,
+            typeStyles: {
+                'pri-1': { bg: '#c00', color: '#fff', radius: '50%', border: 'orange' },
+                'pri-2': { bg: '#f60', color: '#fff', radius: '50%', border: 'orange' },
+                'pri-3': { bg: '#ff0', color: '#000', radius: '50%', border: 'orange' },
+                'info': { bg: '#0af', color: '#fff', radius: '6px', border: '#004080' }
+            }
+        };
+
+        const annotations = [
+            { type: 'separator', title: 'Legend' },
+            { type: 'pri-1', title: 'Pri-1', description: 'Focus on these first.' },
+            { type: 'pri-2', title: 'Pri-2', description: 'Focus on these as well, but not that critical.' },
+            { type: 'pri-3', title: 'Pri-3', description: 'Charrypick what you need, useful, but focus on others first' },
+            { type: 'info', title: 'Additional info', description: 'Explainations for better understanding of a concept' },
+
+            { type: 'separator', title: 'Security posibilities' },
+            {
+                x: 0.124, y: 0.040, type: "pri-2", title: "Signed Git Commits", description: `
+                  Git commits should be signed using a hardware security key (e.g., YubiKey)
+                  to ensure authenticity. ArgoCD can be configured to verify commit signatures
+                  before deployment.
+            `},
+            {
+                x: 0.121, y: 0.220, type: "pri-2", title: "Service Portal", description: `
+                  Non-admin users should request cluster resources through a service portal
+                  instead of direct kubectl access. This portal can generate GitOps-compatible
+                  manifests and apply policy-based validation before committing to Git.
+
+                  It must be separate from administrative tools and enforce access control
+                  and input validation.
+            `},
+            {
+                x: 0.911, y: 0.779, type: "pri-2", title: "Namespaced vs Cluster-wide Resources", description: `
+                  Understand the distinction between namespaced and cluster-wide resources
+                  to apply security policies effectively. Namespaced resources can be isolated
+                  per team, while cluster-wide resources require stricter access control and
+                  governance to prevent privilege escalation.
+            `},
+            {
+                x: 0.792, y: 0.040, type: "pri-2", title: "Kubernetes Distributions and OS Choices", description: `
+                  Choose a Kubernetes distribution and OS designed for security and minimal
+                  attack surface. Avoid general-purpose OSes that require separate patching.
+
+                  Consider immutable, minimal, and hardened distros (e.g., Talos, Flatcar,
+                  Bottlerocket) purpose-built for Kubernetes production environments.
+            `},
+            {
+                x: 0.565, y: 0.072, type: "pri-2", title: "Operators and Infrastructure Workloads", description: `
+                  Operators act on custom Kubernetes resources (e.g., Certificates) via standard
+                  controllers. They typically run as Deployments and require RBAC access to specific APIs.
+
+                  Treat operators like any other workload: apply strict access controls,
+                  run them on dedicated nodes if needed, and isolate privileges based on
+                  least privilege principles.
+            `},
+            {
+                x: 0.681, y: 0.253, type: "pri-1", title: "Namespaces", description: `
+                  Namespaces are logical boundaries used to apply security controls such as
+                  network policies, RBAC, and runtime restrictions.
+
+                  While not a security mechanism by themselves, they enable isolation between
+                  workloads and enforce separation of concerns.
+
+                  Do not confuse Kubernetes namespaces with Linux process namespaces inside containers.
+            `},
+            {
+                x: 0.608, y: 0.757, type: "pri-1", title: "The Container Process", description: `
+                  The containerized application process is governed by multiple security layers:
+                  PodSecurity policies, namespace policies, and runtime enforcement tools.
+                  Tools like Falco uses eBPF to monitor container behavior without
+                  the container being aware of it. Use tools like KubeArmor to enforce behavior.
+
+                  There are many enterprise solutions as well; Sysdig Secure, Tetragon and PrismaCloud
+                  is all worth evaluating.
+                  Some, like NeuVector are also opensource.
+
+                  Syscalls are often restricted by default. Container escapes and 0-days typically
+                  require misconfigurations such as excessive Linux capabilities, unfiltered syscalls,
+                  insecure mounts, or relaxed namespace settings.
+
+                  Linux namespaces isolate PIDs, network interfaces, and other kernel features.
+                  cgroups enforce CPU/memory limits and can freeze containers for forensic inspection.
+
+                  Runtime policies can enforce behaviors like 'runAsNonRoot' or fixed UID/GID.
+                  These policies are defined at the container or pod level, and some are also
+                  baked into the image via the Dockerfile or Containerfile.
+            `},
+            {
+                x: 0.607, y: 0.340, type: "pri-1", title: "Ingress", description: `
+                  Kubernetes Ingress resources configure an ingress controller (e.g., NGINX, HAProxy)
+                  to handle inbound traffic. Controllers support annotations for TLS settings,
+                  authentication, WAF (e.g., ModSecurity), and other security features.
+
+                  Routing is typically based on SNI (FQDN) and HTTP-layer data such as path,
+                  method, or headers. Secure configuration of the ingress controller is critical,
+                  including rate limiting, header validation, and TLS hardening.
+            `},
+            {
+                x: 0.564, y: 0.364, type: "pri-1", title: "Default Pod-to-Pod Traffic", description: `
+                  By default, all pods can communicate with each other. Use a default-deny
+                  NetworkPolicy to block all traffic, then explicitly allow only necessary
+                  communication between pods.
+
+                  This is essential for achieving network segmentation and reducing the
+                  blast radius of a compromise.
+            `},
+            {
+                x: 0.525, y: 0.369, type: "pri-1", title: "Network Control", description: `
+                  Network policies can enforce L3/L4 restrictions using eBPF or iptables,
+                  while L7 policies are enforced via proxies (e.g., Envoy).
+
+                  Some CNIs support admin-level policies that cannot be overridden by
+                  namespace users, enabling enforcement of cluster-wide or organizational
+                  security standards.
+            `},
+            {
+                x: 0.241, y: 0.685, type: "pri-1", title: "Image Repository", description: `
+                  Container images should be scanned for vulnerabilities before being stored in
+                  or pulled from the image repository.
+
+                  Use tools that enforce image admission policies, signature verification,
+                  and vulnerability thresholds to block untrusted or outdated images.
+            `},
+            {
+                x: 0.386, y: 0.063, type: "pri-1", title: "Kubernetes API", description: `
+                  The Kubernetes API is the primary control plane entry point and must be tightly secured.
+                  All access passes through two main stages: authentication and authorization.
+
+                  Authentication verifies the identity of the requestor via client certificates,
+                  bearer tokens, OpenID Connect (OIDC), or webhook tokens. By default,
+                  anonymous requests are permitted and should be explicitly disabled in production clusters.
+
+                  Authorization determines whether the authenticated user is allowed to perform an action.
+                  Kubernetes supports RBAC (Role-Based Access Control) and ABAC (Attribute-Based Access Control),
+                  with RBAC being the most common. RBAC uses roles and bindings to grant fine-grained access
+                  to specific verbs (e.g., GET, CREATE), resource types, and API groups. ABAC uses JSON policies
+                  and can provide more flexible but harder-to-audit logic.
+
+                  Enable audit logging on the API server to log all authenticated requests and send them
+                  to a remote log backend for monitoring and incident response.
+            `},
+            {
+                x: 0.375, y: 0.232, type: "pri-2", title: "Validating and Mutating Admission Control", description: `
+                  Admission controllers intercept API requests after authentication and authorization,
+                  allowing for policy enforcement. Tools like Kyverno and OPA Gatekeeper can validate
+                  incoming YAML against cluster policies or mutate it to enforce configuration standards
+                  (e.g., securityContext, labels, resource limits).
+
+                  All resources—user-submitted or system-generated—must pass admission control.
+                  These controllers can also enforce image signature verification (e.g., cosign)
+                  and SLSA provenance checks to prevent untrusted artifacts from being deployed.
+            `},
+            {
+                x: 0.342, y: 0.249, type: "pri-2", title: "API to etcd Communication", description: `
+                  The Kubernetes API server communicates with etcd to persist cluster state.
+                  Read operations (e.g., GET) fetch data directly and do not trigger admission controllers.
+
+                  Admission controllers only intercept mutating operations (e.g., CREATE, UPDATE, DELETE).
+                  This means read access must be tightly controlled via RBAC/ABAC, since policies cannot
+                  be enforced via admission webhooks for those requests.
+            `},
+            {
+                x: 0.372, y: 0.335, type: "pri-2", title: "Secrets and ConfigMaps", description: `
+                  Secrets and ConfigMaps can be encrypted at rest using encryption providers
+                  configured on the API server. The decryption keys are typically stored inside
+                  the cluster, often on disk.
+
+                  For improved security, use external KMS providers (e.g., HashiCorp Vault, AWS KMS)
+                  to manage keys and prevent key compromise within the cluster.
+            `},
+            {
+                x: 0.315, y: 0.277, type: "pri-2", title: "Secure CNI (e.g., Cilium)", description: `
+                  Use a CNI plugin that supports fine-grained network policies and visibility,
+                  such as Cilium with eBPF. Define a baseline deny-all policy and explicitly allow
+                  only required traffic.
+
+                  Default Kubernetes network policies are namespace-scoped and may not cover all scenarios.
+            `},
+            {
+                x: 0.577, y: 0.444, type: 'pri-2', title: 'Traffic before filters', description: `
+                  Traffic before reaching L7 filters (e.g., Envoy) is often encrypted with mTLS.
+                  This makes payload inspection impossible, but metadata such as SNI, client identity,
+                  or source IP can still be used to enforce context-aware ACLs.
+
+                  Use this metadata to apply fine-grained policies even when the content is opaque.
+            `},
+            {
+                x: 0.390, y: 0.738, type: 'pri-2', title: 'Container image', description: `
+                  Container runtimes can be configured to only allow signed images using tools like cosign.
+                  Admission controllers such as Kyverno can enforce signature verification and additional
+                  build metadata (e.g., SLSA provenance).
+
+                  Images should also be scanned for vulnerabilities before deployment and flagged or blocked
+                  based on severity thresholds.
+            `},
+            {
+                x: 0.505, y: 0.721, type: 'pri-2', title: 'Mounted volumes and env-vars', description: `
+                  External data is often injected into pods via environment variables or projected volumes.
+                  These are typically read-only and can include ConfigMaps, Secrets, or dynamic runtime
+                  values like the pod IP or namespace.
+
+                  When a pod needs to interact with the Kubernetes API, a service account token is
+                  automatically mounted as a projected volume. Ensure proper RBAC scoping for the
+                  associated service account to avoid privilege escalation.
+            `},
+            {
+                x: 0.440, y: 0.667, type: 'pri-2', title: 'Network interfaces (underlay)', description: `
+                  Pods can use different types of network interfaces depending on requirements.
+                  Containers can bind directly to the host interface, or use other means to communicate
+                  over vlans and such.
+
+                  Be aware: underlay networks (e.g., macvlan) typically bypass Kubernetes NetworkPolicies.
+                  Overlay networks used by most CNIs enforce policy as expected and are safer by default.
+            `},
+            {
+                x: 0.532, y: 0.667, type: 'pri-2', title: 'Network interfaces (overlay)', description: `
+                  Normal kubernetes network is done using an overlay using a CNI (Container Network Interface),
+                  like Cilium, Flannel, Calico and many others. They have various functionality and security.
+                  Example, some CNIs doesnt support egress network policies, some uses eBPF a lot, some iptables.
+            `},
+            {
+                x: 0.748, y: 0.922, type: 'pri-2', title: 'Internal pod egress', description: `
+                  Egress traffic from a pod to other services inside the cluster can be controlled
+                  using NetworkPolicies, similar to ingress rules. However, egress rules are often
+                  overlooked, as ingress is more commonly enforced.
+
+                  Define explicit egress policies to restrict which services a pod can communicate
+                  with, reducing lateral movement and attack surface in case of compromise.
+            `},
+            {
+                x: 0.335, y: 0.882, type: 'pri-3', title: 'Egress', description: `
+                  Egress policies control outbound traffic from pods using label selectors and
+                  destination IPs or CIDRs. These rules help prevent unauthorized external access.
+
+                  Some CNIs support assigning dedicated egress IPs per namespace or pod,
+                  enabling traceability and firewall integration for outbound traffic control.
+            `},
+            {
+                x: 0.589, y: 0.659, type: 'pri-3', title: 'Exposed port', description: `
+                  All containers in a pod share the same network namespace and run on the same node.
+                  This allows enforcement of eBPF-based filters and transparent mTLS at the network level.
+
+                  With sidecars or service mesh integration, unencrypted ports like 80 can safely be
+                  exposed internally. Encryption, authentication, and access control are handled outside
+                  the application, making this a secure and preferred approach for internal services.
+            `},
+            {
+                x: 0.554, y: 0.649, type: 'pri-3', title: 'Traffic after filters', description: `
+                  This is the raw, decrypted traffic that reaches the application after passing
+                  through L7 filters or service mesh proxies. At this point, the traffic is no
+                  longer encrypted and can be inspected or modified by sidecars or host-level tools
+                  before delivery to the application process.
+
+                  Ensure that applications enforce their own validation and security controls,
+                  as traffic is now trusted and inside the protected boundary.
+            `},
+            {
+                x: 0.449, y: 0.460, type: 'pri-3', title: 'VirtualMachine or other workload-types', description: `
+                  Other workload types, such as VirtualMachines (e.g., via KubeVirt), follow the same
+                  security mechanisms as pods: RBAC, network policies, storage classes, and admission control.
+
+                  They are not inherently more privileged and should be treated like any other workload
+                  with proper isolation, policy enforcement, and monitoring in place.
+            `},
+            {
+                x: 0.289, y: 0.487, type: 'pri-3', title: 'Other cluster nodes', description: `
+                  Inter-node traffic may use direct IP-to-IP communication or be encapsulated,
+                  depending on the CNI configuration. Encryption can be applied at this level via
+                  service mesh (e.g., mTLS) or CNI-level encryption.
+
+                  Certain workloads—such as ingress controllers, operators, or AI/ML jobs—should
+                  be scheduled on dedicated nodes using taints, tolerations, or node selectors to
+                  enforce separation and reduce security risk.
+            `},
+            {
+                x: 0.351, y: 0.282, type: 'pri-3', title: 'etcd', description: `
+                  etcd stores the entire state of the Kubernetes cluster and must be protected accordingly.
+                  Enable encryption at rest using the API server's encryption provider configuration.
+
+                  Access to etcd should be strictly limited to the API server. Ensure mutual TLS is enabled,
+                  and never expose etcd directly to the network.
+            `},
+            {
+                x: 0.265, y: 0.251, type: 'pri-3', title: 'Cluster to cluster mesh (cluster-mesh)', description: `
+                  A cluster-mesh connects multiple Kubernetes clusters to enable cross-cluster
+                  communication with cloud-native networking features. This allows services in
+                  different clusters to communicate as if they were in the same network.
+
+                  Traffic can be encrypted using mTLS and authenticated using workload identities
+                  unique to each cluster. With proper setup, standard Kubernetes NetworkPolicies
+                  can be enforced across cluster boundaries.
+            `},
+            {
+                x: 0.274, y: 0.431, type: 'pri-3', title: 'Custom Operators / orchestrators', description: `
+                  Properly designed custom operators can enhance security by integrating tightly
+                  with Kubernetes-native patterns like RBAC, admission control, and CRDs.
+
+                  For example, you can expose a custom resource that developers use to request
+                  infrastructure, while the operator enforces policy-compliant templates and behavior.
+                  Operators can also manage resources external to the cluster in a controlled and auditable way.
+            `},
+            {
+                x: 0.462, y: 0.102, type: 'pri-3', title: 'Internal API communication', description: `
+                  The Kubernetes API should only be accessible to internal system components,
+                  operators, and pods that explicitly require it.
+
+                  Use default-deny NetworkPolicies to block access by default, and only allow
+                  specific namespaces or service accounts to communicate with the API server.
+                  This minimizes the attack surface and enforces least privilege access.
+            `},
+            {
+                x: 0.469, y: 0.048, type: 'pri-3', title: 'Authentication webhook', description: `
+                  Authentication webhooks are less commonly used, but can provide additional
+                  control beyond standard RBAC. They allow dynamic authentication decisions
+                  based on external systems or custom logic.
+
+                  For example, a webhook can reject requests targeting namespaces that match
+                  certain patterns or enforce organization-specific access rules in real time.
+            `},
+            {
+                x: 0.129, y: 0.415, type: 'pri-3', title: 'Service owner deployment', description: `
+                  For improved security, use a dedicated GitOps stack (e.g., ArgoCD or Flux)
+                  for service owners deploying applications. This instance should have restricted
+                  access and only be permitted to modify specific resources within designated namespaces.
+
+                  This separation ensures that service owners operate within defined boundaries,
+                  reducing the risk of misconfiguration or privilege escalation.
+            `},
+            {
+                x: 0.429, y: 0.185, type: 'pri-2', title: 'system:masters group', description: `
+                  The 'system:masters' group is a built-in Kubernetes group that bypasses the
+                  authorization layer and grants full administrative access to the cluster.
+
+                  It should only be used for initial bootstrapping or controlled RBAC testing.
+                  Ensure no regular users or service accounts are members of this group.
+                  Monitor and audit usage carefully—this group should be empty in production environments.
+            `},
+            {
+                x: 0.667, y: 0.887, type: 'pri-3', title: 'Hardened container runtimes', description: `
+                  Hardened container runtimes provide additional isolation layers beyond standard
+                  runtimes like runc. For example, gVisor intercepts syscalls and provides a
+                  userspace kernel implementation, while Kata Containers wrap each container in
+                  lightweight virtual machines.
+
+                  OpenShift Sandbox Containers use Kata under the hood to offer enhanced isolation.
+            `},
+            {
+                x: 0.667, y: 0.717, type: 'pri-3', title: 'Sidecar container', description: `
+                  Sidecar containers can improve security by isolating responsibilities such as TLS termination,
+                  authentication, or logging from the main app. They are used by some service meshes (e.g., Istio),
+                  but newer approaches like eBPF and ambient meshes offer lower overhead and better scalability.
+
+                  Sidecars share the same network namespace, allowing secure localhost (127.0.0.1) communication.
+                  They can also enforce policies or proxy traffic, but increase attack surface and resource usage.
+            `},
+            {
+                x: 0.667, y: 0.754, type: 'pri-3', title: 'Init container', description: `
+                  Init containers enhance security by performing setup tasks before the main container starts,
+                  such as validating configs, downloading secrets, or verifying service dependencies.
+
+                  They run with separate images and permissions, reducing attack surface in the main container.
+                  Types include wait-for-dependency containers, secret fetchers, permission fixers (e.g., chown volumes),
+                  and environment validators. Since they run sequentially and exit before app start,
+                  they can enforce strict preconditions and avoid persistent exposure.
+            `},
+            {
+                x: 0.667, y: 0.788, type: 'pri-3', title: 'Ephemeral containers', description: `
+                  Ephemeral containers are used for live debugging of running Pods without restarting them.
+                  They provide no guarantees on lifecycle, don't support volumes, and can't be part of normal app logic.
+                  From a security standpoint, they are powerful but risky—if enabled, they allow runtime inspection,
+                  so access should be tightly controlled (e.g., via RBAC).
+
+                  They share namespaces (like network and PID) with existing containers,
+                  enabling deep introspection but also potential abuse if misused.
+            `},
+            {
+                x: 0.667, y: 0.824, type: 'pri-3', title: 'WASM containers', description: `
+                  WASM containers aim to run WebAssembly modules in place of traditional OCI containers,
+                  offering stronger isolation, faster cold starts, and lower resource usage. They don't rely on Linux syscalls,
+                  reducing attack surface and making them ideal for sandboxed, untrusted code. Projects like wasmEdge,
+                  containerd-shim-wasmedge, and Krustlet explore this in Kubernetes.
+
+                  Long-term, WASM containers could enable safer multi-tenant workloads and portable compute
+                  across cloud, edge, and browser environments.
+            `},
+            { type: 'separator', title: 'Info' },
+            {
+                x: 0.029, y: 0.044, type: 'info', title: 'What is this and how to use..', description: `
+                  This is a diagram made to better understand and get an overview of kubernetes security.
+
+                  It's not complete (but you are welcome to submitt a PR/issue), nor is it perfect, it is biased and it might not be for you.
+
+                  It might however help you to discuss kubernetes in a security-context with your team, or just to get a better understanding yourself.
+
+                  The drawing is most likely an overkill. It is not ment as a "solution" or design.
+                  It's also quite busy, with a ton of elements. It's not ment to "explain" everything, but something you can sit down with and browse around and maybe learn something new.
+
+                  Also, it is on-prem... For non on-prem, it might not be that relevant.
+            `},
+            {
+                x: 0.470, y: 0.678, type: 'info', title: 'Multi-interface (Multus)', description: `
+                  A pod can have multiple network interfaces using the Multus CNI plugin.
+                  This allows attaching additional networks to a pod beyond the default CNI.
+
+                  It is useful for scenarios like separating control and data planes,
+                  connecting to legacy networks, or assigning dedicated interfaces for specific protocols.
+            `},
+            {
+                x: 0.364, y: 0.423, type: 'info', title: 'A Deployment', description: `
+                  This represents the internal structure of a single Deployment. The same applies
+                  to other controller types like DaemonSets and StatefulSets.
+
+                  For simplicity, Deployments are visualized as single objects throughout this diagram.
+            `},
+            {
+                x: 0.231, y: 0.332, type: 'info', title: 'What is an "operator"', description: `
+                  Operators in Kubernetes extend the control plane by automating the management
+                  of complex applications or infrastructure using custom resources and controllers.
+
+                  For example, a system operator can create defaults like Namespaces, or manage
+                  external resources through custom objects like a "Tofu" resource controlling
+                  infrastructure outside the cluster.
+
+                  Kubernetes can serve as a generic orchestration engine—beyond just container workloads.
+            `},
+            {
+                x: 0.900, y: 0.817, type: 'info', size: 'small', title: 'Configurable capability', description: `
+                  Represents a capability in the platform or workload that can be configured
+                  or overridden as needed.
+
+                  These are typically adjustable via policies, annotations, or runtime settings.
+            `},
+            {
+                x: 0.900, y: 0.769, type: 'info', size: 'small', title: 'Kubernetes resource', description: `
+                  Kubernetes is built around resource types such as Pod, Service, Deployment,
+                  Ingress, and Node.
+
+                  Some resource types shown in this diagram are fictional or optional,
+                  included for illustrative purposes to show architectural completeness.
+
+                  Example of a simple Pod resource
+                  <hr />
+                  apiVersion: v1
+                  kind: Pod
+                  metadata:
+                    name: my-app
+                    namespace: default
+                    labels:
+                      app: demo
+                      tier: frontend
+                  spec:
+                    containers:
+                      - name: my-app
+                        image: nginx:1.25
+                        ports:
+                          - containerPort: 80
+  `         },
+        ];
+
+        const image = document.getElementById('main-image');
+        const wrapper = document.getElementById('image-wrapper');
+        const tooltipLayer = document.getElementById('tooltip-layer');
+        const container = document.getElementById('container');
+        const list = document.getElementById('annotation-list');
+
+        let markersRendered = false;
+
+        image.src = debug ? './kubesec-diagram.png' : 'https://media.githubusercontent.com/media/kubesec-diagram/kubesec-diagram.github.io/refs/heads/main/kubesec-diagram.png';
+
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.innerText = str;
+            return div.innerHTML;
+        }
+
+        function cleanMultiline(str) {
+            if (!str) return '';
+
+            const raw = str.replace(/^\s*\n/, '').trimEnd();
+            const lines = raw.split('\n');
+
+            const indent = lines
+                .filter(line => line.trim())
+                .map(line => line.match(/^(\s*)/)?.[1].length || 0)
+                .reduce((a, b) => Math.min(a, b), Infinity);
+
+            return lines.map(line => line.slice(indent)).join('<br>');
+        }
+
+        function renderMarkers() {
+            if (markersRendered) return;
+            markersRendered = true;
+
+            let priCounter = 1;
+            let infoCounter = 1;
+
+            annotations.forEach((ann) => {
+                if (!ann.x || !ann.y || ann.type === 'hr') return;
+
+                const style = config.typeStyles[ann.type] || { bg: '#ccc', color: '#000', radius: '50%', border: 'gray' };
+                const isInfo = ann.type === 'info';
+                const index = isInfo ? infoCounter++ : priCounter++;
+
+                const wrapperEl = document.createElement('div');
+                wrapperEl.style.position = 'absolute';
+                wrapperEl.style.transform = 'translate(-50%, -50%)';
+                wrapperEl.style.zIndex = '10';
+
+                const marker = document.createElement('div');
+                marker.className = 'marker';
+                marker.setAttribute('data-index', index);
+                marker.style.background = style.bg;
+                marker.style.color = style.color;
+                marker.style.borderRadius = style.radius;
+                marker.style.borderColor = style.border;
+                if (isInfo) marker.textContent = '?';
+
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip-box';
+                tooltip.innerHTML = `<b>${index}. ${escapeHTML(ann.title)}</b><br><br>${cleanMultiline(ann.description)}`;
+                tooltip.style.display = 'none';
+                tooltipLayer.appendChild(tooltip);
+
+                let hideTimeout;
+
+                wrapperEl.addEventListener('mouseenter', () => {
+                    clearTimeout(hideTimeout);
+                    const bounds = image.getBoundingClientRect();
+                    const x = ann.x * bounds.width;
+                    const y = ann.y * bounds.height;
+
+                    tooltip.style.display = 'block';
+                    tooltip.style.minWidth = config.tooltipMinWidth + 'px';
+
+                    requestAnimationFrame(() => {
+                        const tipWidth = tooltip.offsetWidth;
+                        let adjustedX = x;
+
+                        if (x - tipWidth / 2 < 0) {
+                            adjustedX = tipWidth / 2;
+                        } else if (x + tipWidth / 2 > bounds.width) {
+                            adjustedX = bounds.width - tipWidth / 2;
+                        }
+
+                        const offsetY = (y > bounds.height / 2) ? -8 - tooltip.offsetHeight : 8;
+                        tooltip.style.left = `${adjustedX}px`;
+                        tooltip.style.top = `${y + offsetY}px`;
+                    });
+                });
+
+                wrapperEl.addEventListener('mouseleave', () => {
+                    hideTimeout = setTimeout(() => tooltip.style.display = 'none', 100);
+                });
+
+                tooltip.addEventListener('mouseenter', () => {
+                    clearTimeout(hideTimeout);
+                });
+
+                tooltip.addEventListener('mouseleave', () => {
+                    hideTimeout = setTimeout(() => tooltip.style.display = 'none', 100);
+                });
+
+                wrapperEl.appendChild(marker);
+                wrapper.appendChild(wrapperEl);
+
+                ann._el = wrapperEl;
+                ann._tooltip = tooltip;
+                ann._index = index;
+            });
+
+            positionMarkers();
+        }
+
+        function positionMarkers() {
+            const bounds = image.getBoundingClientRect();
+
+            annotations.forEach(ann => {
+                if (!ann._el) return;
+
+                const scale = config.markerScale;
+                const factor = ann.size === 'small' ? 0.5 : 1.0;
+                const size = bounds.width * scale * factor;
+
+                const wrapperEl = ann._el;
+                const marker = wrapperEl.querySelector('.marker');
+
+                const left = ann.x * bounds.width * xMultiplier;
+                const top = ann.y * bounds.height * yMultiplier;
+
+                wrapperEl.style.left = `${left}px`;
+                wrapperEl.style.top = `${top}px`;
+
+                marker.style.width = `${size}px`;
+                marker.style.height = `${size}px`;
+                marker.style.fontSize = `${size * 0.5}px`;
+            });
+        }
+
+        function renderList() {
+            list.innerHTML = '';
+            let priCounter = 1;
+            let infoCounter = 1;
+
+            annotations.forEach((ann) => {
+                if (ann.type === 'separator') {
+                    const sep = document.createElement('div');
+                    sep.className = 'annotation-separator';
+                    sep.innerHTML = `<span>${escapeHTML(ann.title || '')}</span>`;
+                    list.appendChild(sep);
+                    return;
+                }
+
+                if (!('x' in ann) || !('y' in ann)) {
+                    const item = document.createElement('div');
+                    item.className = 'annotation-item';
+                    const style = config.typeStyles[ann.type] || { bg: '#ccc', color: '#000' };
+                    item.innerHTML = `
+        <div style="display: flex; align-items: flex-start; gap: 6px;">
+            <div style="background:${style.bg};color:${style.color};padding:2px 6px;border-radius:4px;white-space:nowrap;">-</div>
+            <div>
+                <b>${escapeHTML(ann.title)}</b><br>${cleanMultiline(ann.description)}
+            </div>
+        </div>`;
+                    list.appendChild(item);
+                    return;
+                }
+
+                const style = config.typeStyles[ann.type] || { bg: '#ccc', color: '#000' };
+                const isInfo = ann.type === 'info';
+                const index = isInfo ? infoCounter++ : priCounter++;
+
+                const item = document.createElement('div');
+                item.className = 'annotation-item';
+                item.innerHTML = `
+        <div style="display: flex; align-items: flex-start; gap: 6px;">
+            <div style="background:${style.bg};color:${style.color};padding:2px 6px;border-radius:4px;white-space:nowrap;">
+                ${index}
+            </div>
+            <div>
+                <b>${escapeHTML(ann.title)}</b><br>${cleanMultiline(ann.description)}
+            </div>
+        </div>`;
+                list.appendChild(item);
+            });
+        }
+
+        // Controls
+        const toggleAnnotationsBtn = document.getElementById('toggle-annotations');
+        const toggleMarkersBtn = document.getElementById('toggle-markers');
+
+        let annotationsVisible = false;
+        let markersVisible = true;
+
+        toggleMarkersBtn.classList.add('active');
+        document.body.classList.remove('annotations-active');
+        document.body.classList.remove('hidden-markers');
+
+        toggleAnnotationsBtn.addEventListener('click', () => {
+            if (!markersVisible) {
+                markersVisible = true;
+                document.body.classList.remove('hidden-markers');
+                toggleMarkersBtn.classList.add('active');
+            }
+
+            annotationsVisible = !annotationsVisible;
+            toggleAnnotationsBtn.classList.toggle('active', annotationsVisible);
+
+            if (annotationsVisible) {
+                document.body.classList.add('annotations-active');
+                renderList();
+            } else {
+                document.body.classList.remove('annotations-active');
+                list.innerHTML = '';
+            }
+
+            // Always reposition markers when layout might change
+            positionMarkers();
+        });
+
+        toggleMarkersBtn.addEventListener('click', () => {
+            markersVisible = !markersVisible;
+            toggleMarkersBtn.classList.toggle('active', markersVisible);
+
+            if (markersVisible) {
+                document.body.classList.remove('hidden-markers');
+            } else {
+                document.body.classList.add('hidden-markers');
+
+                annotationsVisible = false;
+                document.body.classList.remove('annotations-active');
+                list.innerHTML = '';
+                toggleAnnotationsBtn.classList.remove('active');
+            }
+
+            // Always reposition markers after change
+            positionMarkers();
+        });
+        // end controls
+
+        image.addEventListener('load', () => {
+            renderMarkers();
+            positionMarkers();
+
+            if (debug) {
+                document.getElementById('debug-controls').style.display = 'flex';
+            }
+        });
+
+        window.addEventListener('resize', positionMarkers);
+
+        if (debug) {
+            image.addEventListener('click', e => {
+                const rect = image.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width;
+                const y = (e.clientY - rect.top) / rect.height;
+                console.log(`{ x: ${x.toFixed(3)}, y: ${y.toFixed(3)}, type: 'pri-3', title: 'Title', description: 'Description' },`);
+            });
+
+            document.getElementById('debug-controls').style.display = 'flex';
+
+            const xInput = document.getElementById('x-multiplier');
+            const yInput = document.getElementById('y-multiplier');
+            const exportBtn = document.getElementById('export-coords');
+
+            xInput.addEventListener('input', () => {
+                xMultiplier = parseFloat(xInput.value) || 1;
+                positionMarkers();
+            });
+
+            yInput.addEventListener('input', () => {
+                yMultiplier = parseFloat(yInput.value) || 1;
+                positionMarkers();
+            });
+
+            exportBtn.addEventListener('click', () => {
+                const updated = annotations.map(a => {
+                    const clean = Object.fromEntries(
+                        Object.entries(a).filter(([key, _]) => !key.startsWith('_'))
+                    );
+
+                    if ('x' in clean && 'y' in clean) {
+                        clean.x = parseFloat((clean.x * xMultiplier).toFixed(4));
+                        clean.y = parseFloat((clean.y * yMultiplier).toFixed(4));
+                    }
+
+                    return clean;
+                });
+
+                console.log(updated);
+            });
+        }
+    </script>
+</body>
+
+</html>

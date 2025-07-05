@@ -1,0 +1,53 @@
+.marker:focus {
+    outline: 3px solid #4fc3f7;
+    outline-offset: 2px;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.marker:hover {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.05);
+}
+
+.keyboard-help {
+    position: fixed;
+    bottom: 80px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-family: monospace;
+    z-index: 10000;
+    display: none;
+}
+
+.keyboard-help.show {
+    display: block;
+}
+
+.keyboard-help h4 {
+    margin: 0 0 8px 0;
+    font-size: 12px;
+    color: #4fc3f7;
+}
+
+.keyboard-help ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.keyboard-help li {
+    margin: 2px 0;
+}
+
+.keyboard-help kbd {
+    background: #333;
+    padding: 2px 4px;
+    border-radius: 2px;
+    font-size: 10px;
+    color: #fff;
+}

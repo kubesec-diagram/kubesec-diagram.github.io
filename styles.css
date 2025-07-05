@@ -1,0 +1,275 @@
+body {
+    margin: 0;
+    font-family: sans-serif;
+    overflow: hidden;
+}
+
+#container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+#image-wrapper {
+    position: relative;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+#main-image {
+    height: 100vh;
+    width: auto;
+    max-width: 100vw;
+    display: block;
+}
+
+body.annotations-active #main-image {
+    max-width: calc(100vw - 500px);
+}
+
+#tooltip-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.marker {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    cursor: pointer;
+    opacity: 0.8;
+    z-index: 1;
+    transform: translate(-50%, -50%);
+    border: 2px solid;\n    transition: all 0.2s ease;
+}
+
+.tooltip-box {
+    position: absolute;
+    background: rgba(30, 30, 30, 0.95);
+    color: white;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: clamp(11px, 2vw, 14px);
+    min-width: 320px;
+    max-width: 500px;
+    white-space: pre-wrap;
+    text-align: left;
+    pointer-events: auto;
+    transform: translate(-50%, 0);
+    display: none;
+}
+
+.tooltip-box a {
+    color: #4fc3f7;
+    text-decoration: underline;
+}
+
+#annotation-list {
+    flex: 1;
+    height: 100vh;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    padding: 20px;
+    column-width: 260px;
+    column-gap: 32px;
+    column-fill: auto;
+}
+
+.annotation-item {
+    margin-bottom: 12px;
+    font-size: 14px;
+    padding: 8px;
+    border-radius: 6px;
+    break-inside: avoid;
+}
+
+.annotation-item:nth-child(even) {
+    background: #f9f9f9;
+}
+
+.annotation-item:nth-child(odd) {
+    background: #fff;
+}
+
+.annotation-separator {
+    display: flex;
+    align-items: center;
+    margin: 24px 0 12px;
+    font-weight: bold;
+    color: #555;
+    white-space: nowrap;
+    break-inside: avoid;
+}
+
+.annotation-separator::before,
+.annotation-separator::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid #ccc;
+    margin: 0 8px;
+}
+
+.annotation-separator span {
+    white-space: nowrap;
+}
+
+.hidden-markers .marker {
+    display: none !important;
+}
+
+.numbered .marker::before {
+    content: attr(data-index);
+    position: relative;
+    z-index: 1;
+}
+
+.footer-link {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    font-size: 12px;
+    color: #888;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+}
+
+.footer-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.footer-control {
+    font-size: 12px;
+    color: #4fc3f7;
+    cursor: pointer;
+    padding: 4px 0 4px 24px;
+    position: relative;
+    display: inline-block;
+    user-select: none;
+    transition: color 0.2s;
+}
+
+.footer-control::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    border: 1px solid #4fc3f7;
+    border-radius: 2px;
+    background: transparent;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.footer-control.active::before {
+    background: #0af;
+    border-color: #0af;
+}
+
+.footer-control.active::after {
+    content: "✔";
+    position: absolute;
+    left: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: #000;
+    pointer-events: none;
+}
+
+.footer-control:hover {
+    color: #0af;
+}
+
+.footer-link a {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+    color: #4fc3f7;
+}
+
+.footer-link a:hover {
+    text-decoration: underline;
+}
+
+.footer-link svg {
+    vertical-align: middle;
+}
+
+.footer-meta {
+    color: #999;
+}
+
+.footer-meta .version {
+    font-weight: bold;
+    color: #ccc;
+}
+
+.footer-github {
+    font-size: 12px;
+    color: #4fc3f7;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.footer-github a {
+    color: #4fc3f7;
+    text-decoration: none;
+}
+
+.footer-github a:hover {
+    text-decoration: underline;
+}
+
+/* --- Adjustments for mobile --- */
+@media (max-width: 768px) {
+    .footer-buttons {
+        display: none;
+    }
+
+    #container {
+        display: block;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+    }
+
+    #image-wrapper {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        touch-action: pan-x pan-y;
+        flex-shrink: 0;
+    }
+
+    #main-image {
+        width: auto;
+        height: auto;
+        max-width: none;
+        max-height: none;
+        display: block;
+    }
+
+    .tooltip-box {
+        font-size: 11px;
+        min-width: 240px;
+        max-width: 85vw;
+        padding: 8px;
+        width: auto;
+    }
+}
