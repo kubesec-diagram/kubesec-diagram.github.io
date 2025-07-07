@@ -80,6 +80,12 @@
         <div class="footer-buttons">
             <div id="toggle-annotations" class="footer-control" title="Toggle annotations">Annotations</div>
             <div id="toggle-markers" class="footer-control" title="Toggle circles">Circles</div>
+            <div class="user-annotations-row">
+                <button id="toggle-user-annotations" class="user-annotations-btn" title="Manage user annotations">User
+                    Annotations</button>
+                <button id="exit-edit-mode" class="exit-edit-mode-btn" title="Exit edit mode"
+                    style="display: none;">exit edit</button>
+            </div>
         </div>
         <div class="footer-github">
             <a href="https://github.com/kubesec-diagram/kubesec-diagram.github.io" target="_blank">GitHub</a>
@@ -88,8 +94,137 @@
                 title="Star this project">⭐</a>
         </div>
         <span class="footer-meta">
-            <span class="version">v6</span> • <span class="last-updated">Last updated: 2025-05-11</span>
+            <span class="version">v8</span> • <span class="last-updated">Last updated: 2025-07-07</span>
         </span>
+    </div>
+
+    <!-- User Annotations Modal -->
+    <div id="user-annotations-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>User Annotations</h3>
+                <button id="close-user-modal" class="close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Add New Annotation Form (Desktop only) -->
+                <div class="add-annotation-form desktop-only">
+                    <h4>Add New Annotation:</h4>
+                    <form id="inline-annotation-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="inline-title">Title (required):</label>
+                                <input type="text" id="inline-title" maxlength="50" required>
+                                <small class="char-count"><span id="inline-title-count">0</span>/50</small>
+                            </div>
+                        </div>
+                        <div class="form-row selector-row">
+                            <div class="form-group mode-selector-group">
+                                <label>Mode:</label>
+                                <div class="mode-selector">
+                                    <button type="button" id="mode-point" class="mode-btn point-btn"
+                                        title="Point Annotation">
+                                        <div class="mode-icon point-icon"></div>
+                                        <span>Point</span>
+                                    </button>
+                                    <button type="button" id="mode-area" class="mode-btn area-btn active"
+                                        title="Area Annotation">
+                                        <div class="mode-icon area-icon"></div>
+                                        <span>Area</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group shape-selector-group">
+                                <label>Shape:</label>
+                                <div class="shape-selector">
+                                    <button type="button" id="shape-rectangle" class="shape-btn rectangle-btn active"
+                                        title="Rectangle">
+                                        <div class="shape-icon rectangle-icon"></div>
+                                    </button>
+                                    <button type="button" id="shape-circle" class="shape-btn circle-btn" title="Circle">
+                                        <div class="shape-icon circle-icon"></div>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group type-selector-group">
+                                <label>Type:</label>
+                                <div class="type-selector" id="type-selector">
+                                    <!-- Type buttons will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="inline-description">Description (supports HTML):</label>
+                            <textarea id="inline-description" maxlength="500" rows="3"></textarea>
+                            <small class="char-count"><span id="inline-desc-count">0</span>/500</small>
+                            <small class="annotation-help">Allowed HTML tags: hr, br, b, strong, i, em, u</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Preview:</label>
+                            <div id="inline-description-preview" class="description-preview"></div>
+                        </div>
+                        <button type="button" id="place-annotation-btn" disabled>📍 Place Annotation</button>
+                    </form>
+                </div>
+
+                <!-- Current Annotations List -->
+                <div class="user-annotations-list">
+                    <div class="list-header">
+                        <h4>Current annotations (<span id="annotation-count">0</span>/10):</h4>
+                        <div class="list-controls desktop-only">
+                            <label class="edit-mode-toggle">
+                                <input type="checkbox" id="edit-mode-checkbox">
+                                <span class="checkmark"></span>
+                                Edit Mode (enable drag & drop)
+                            </label>
+                        </div>
+                    </div>
+                    <div id="user-annotation-items"></div>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="modal-actions">
+                    <button id="share-url-btn">📋 Copy Share URL</button>
+                    <button id="clear-all-annotations" class="danger-btn">🗑️ Clear All</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Annotation Modal -->
+    <div id="edit-annotation-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Annotation</h3>
+                <button id="close-edit-modal" class="close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-annotation-form">
+                    <div class="form-group">
+                        <label for="edit-title">Title (required):</label>
+                        <input type="text" id="edit-title" maxlength="50" required>
+                        <small class="char-count"><span id="edit-title-count">0</span>/50</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-description">Description (supports HTML):</label>
+                        <textarea id="edit-description" maxlength="500" rows="4"></textarea>
+                        <small class="char-count"><span id="edit-desc-count">0</span>/500</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-type">Type:</label>
+                        <select id="edit-type" required>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Preview:</label>
+                        <div id="edit-description-preview" class="description-preview"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit">Save Changes</button>
+                        <button type="button" id="cancel-edit">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <script src="data.js"></script>

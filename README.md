@@ -17,16 +17,9 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 
 ## Changelog
 
-* v7 (WIP)
-  * More writings in "The Container Process"
-  * Warning and info if javascript is diabled
-  * ?debug now loads image from ./
-  * Maybes
-    * SecurityContext and PodSecurityContext?
-    * Encryption of secrets, eg, EncryptionConfiguration for etcd
-    * RBAC and how/where role-bindings are. clusterroles and rolebindings, escalate verb, and * policies
-    * PodSecurityAdmission (PSA)
-
+* v8 (2025-07-07)
+  * Splitting code up from one big file to multiple separate.
+  * Adding functionality for user annotation that is saved in the url so it can be shared
 * v7 (2025-06-30)
   * More writings in "The Container Process"
   * Warning and info if javascript is diabled
