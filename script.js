@@ -28,6 +28,17 @@ let timeoutIds = [];
 let cachedBounds = null;
 let lastBoundsUpdate = 0;
 
+// Zoom and pan variables
+let currentZoom = 1;
+let maxZoom = 4;
+let minZoom = 1;
+let isPanning = false;
+let panStartX = 0;
+let panStartY = 0;
+let imageTranslateX = 0;
+let imageTranslateY = 0;
+let isPositioningMarkers = false;
+
 // User annotations variables
 let userAnnotations = [];
 let isDraggingUserAnnotation = false;
@@ -359,32 +370,114 @@ function renderMarkers() {
             if (editModeEnabled) return;
             
             clearTimeout(hideTimeout);
-            const bounds = image.getBoundingClientRect();
-            const x = ann.x * bounds.width;
-            const y = ann.y * bounds.height;
+            
+            const markerRect = wrapperEl.getBoundingClientRect();
+            const markerCenterX = markerRect.left + markerRect.width / 2;
+            const markerCenterY = markerRect.top + markerRect.height / 2;
 
             tooltip.style.display = 'block';
             tooltip.style.minWidth = ((config && config.tooltipMinWidth) || 380) + 'px';
 
             requestAnimationFrame(() => {
                 const tipWidth = tooltip.offsetWidth;
-                let adjustedX = x;
+                const tipHeight = tooltip.offsetHeight;
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const margin = 10;
 
-                if (x - tipWidth / 2 < 0) {
-                    adjustedX = tipWidth / 2;
-                } else if (x + tipWidth / 2 > bounds.width) {
-                    adjustedX = bounds.width - tipWidth / 2;
+                // Start with tooltip centered above marker
+                // Note: CSS has transform: translate(-50%, 0) so we position the center point
+                let adjustedX = markerCenterX;
+                let adjustedY = markerCenterY - tipHeight - 15;
+
+                // Keep within horizontal bounds (accounting for CSS centering)
+                if (adjustedX - tipWidth / 2 < margin) {
+                    adjustedX = margin + tipWidth / 2;
+                } else if (adjustedX + tipWidth / 2 > viewportWidth - margin) {
+                    adjustedX = viewportWidth - margin - tipWidth / 2;
                 }
 
-                const offsetY = (y > bounds.height / 2) ? -8 - tooltip.offsetHeight : 8;
+                // Keep within vertical bounds
+                if (adjustedY < margin) {
+                    // Show below marker if not enough space above
+                    adjustedY = markerCenterY + 15;
+                    // Double-check it fits below too
+                    if (adjustedY + tipHeight > viewportHeight - margin) {
+                        adjustedY = viewportHeight - tipHeight - margin;
+                    }
+                } else if (adjustedY + tipHeight > viewportHeight - margin) {
+                    // Move up if tooltip extends below viewport
+                    adjustedY = viewportHeight - tipHeight - margin;
+                }
+
                 tooltip.style.left = `${adjustedX}px`;
-                tooltip.style.top = `${y + offsetY}px`;
+                tooltip.style.top = `${adjustedY}px`;
             });
         });
 
         wrapperEl.addEventListener('mouseleave', () => {
             const delay = (config && config.ui && config.ui.tooltipHideDelay) || 100;
             hideTimeout = setTimeout(() => tooltip.style.display = 'none', delay);
+        });
+
+        // Touch support for mobile - show tooltip on tap
+        wrapperEl.addEventListener('touchstart', (e) => {
+            // Don't show tooltips in edit mode
+            if (editModeEnabled) return;
+            
+            e.preventDefault(); // Prevent mouse events
+            clearTimeout(hideTimeout);
+            
+            const markerRect = wrapperEl.getBoundingClientRect();
+            const markerCenterX = markerRect.left + markerRect.width / 2;
+            const markerCenterY = markerRect.top + markerRect.height / 2;
+
+            tooltip.style.display = 'block';
+            tooltip.style.minWidth = ((config && config.tooltipMinWidth) || 380) + 'px';
+
+            requestAnimationFrame(() => {
+                const tipWidth = tooltip.offsetWidth;
+                const tipHeight = tooltip.offsetHeight;
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                const margin = 10;
+
+                // Start with tooltip centered above marker
+                // Note: CSS has transform: translate(-50%, 0) so we position the center point
+                let adjustedX = markerCenterX;
+                let adjustedY = markerCenterY - tipHeight - 15;
+
+                // Keep within horizontal bounds (accounting for CSS centering)
+                if (adjustedX - tipWidth / 2 < margin) {
+                    adjustedX = margin + tipWidth / 2;
+                } else if (adjustedX + tipWidth / 2 > viewportWidth - margin) {
+                    adjustedX = viewportWidth - margin - tipWidth / 2;
+                }
+
+                // Keep within vertical bounds
+                if (adjustedY < margin) {
+                    // Show below marker if not enough space above
+                    adjustedY = markerCenterY + 15;
+                    // Double-check it fits below too
+                    if (adjustedY + tipHeight > viewportHeight - margin) {
+                        adjustedY = viewportHeight - tipHeight - margin;
+                    }
+                } else if (adjustedY + tipHeight > viewportHeight - margin) {
+                    // Move up if tooltip extends below viewport
+                    adjustedY = viewportHeight - tipHeight - margin;
+                }
+
+                tooltip.style.left = `${adjustedX}px`;
+                tooltip.style.top = `${adjustedY}px`;
+            });
+        });
+
+        // Hide tooltip when tapping elsewhere
+        document.addEventListener('touchstart', (e) => {
+            if (!wrapperEl.contains(e.target) && !tooltip.contains(e.target)) {
+                tooltip.style.display = 'none';
+                clearTimeout(hideTimeout);
+            }
         });
 
         tooltip.addEventListener('mouseenter', () => {
@@ -404,50 +497,70 @@ function renderMarkers() {
         ann._index = index;
     });
 
-    positionMarkers();
+    scheduleMarkerPositioning();
 }
 
-function getCachedBounds() {
-    const now = performance.now();
-    const cacheDuration = (config && config.boundsCacheDuration) || 16;
-    if (!cachedBounds || (now - lastBoundsUpdate) > cacheDuration) {
-        cachedBounds = image.getBoundingClientRect();
-        lastBoundsUpdate = now;
-    }
-    return cachedBounds;
+function getImageBounds() {
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const displayedWidth = image.offsetWidth || image.clientWidth;
+    const displayedHeight = image.offsetHeight || image.clientHeight;
+    const effectiveLeft = wrapperRect.left + imageTranslateX;
+    const effectiveTop = wrapperRect.top + imageTranslateY;
+    
+    return {
+        left: effectiveLeft,
+        top: effectiveTop,
+        width: displayedWidth,
+        height: displayedHeight,
+        right: effectiveLeft + displayedWidth,
+        bottom: effectiveTop + displayedHeight
+    };
+}
+
+function scheduleMarkerPositioning() {
+    // Prevent overlapping positioning calls
+    if (isPositioningMarkers) return;
+    
+    isPositioningMarkers = true;
+    requestAnimationFrame(() => {
+        positionMarkers();
+        isPositioningMarkers = false;
+    });
 }
 
 function positionMarkers() {
-    const bounds = getCachedBounds();
+    const bounds = getImageBounds();
     const scale = (config && config.markerScale) || 0.01;
 
-    // Position standard markers
     annotations.forEach(ann => {
         if (!ann._el) return;
 
         const factor = ann.size === 'small' ? 0.5 : 1.0;
-        const size = bounds.width * scale * factor;
+        const baseSize = bounds.width * scale * factor;
+        const scaledSize = baseSize * currentZoom;
 
         const wrapperEl = ann._el;
         const marker = wrapperEl.querySelector('.marker');
 
-        const left = ann.x * bounds.width * xMultiplier;
-        const top = ann.y * bounds.height * yMultiplier;
+        const relativeX = ann.x * bounds.width * xMultiplier * currentZoom;
+        const relativeY = ann.y * bounds.height * yMultiplier * currentZoom;
+        
+        const left = bounds.left + relativeX;
+        const top = bounds.top + relativeY;
 
         wrapperEl.style.left = `${left}px`;
         wrapperEl.style.top = `${top}px`;
 
-        marker.style.width = `${size}px`;
-        marker.style.height = `${size}px`;
-        marker.style.fontSize = `${size * 0.5}px`;
+        marker.style.width = `${scaledSize}px`;
+        marker.style.height = `${scaledSize}px`;
+        marker.style.fontSize = `${scaledSize * 0.5}px`;
     });
     
-    // Position user annotation markers
     positionUserAnnotationMarkers();
 }
 
 function positionUserAnnotationMarkers() {
-    const bounds = getCachedBounds();
+    const bounds = getImageBounds();
     const scale = (config && config.markerScale) || 0.01;
 
     userAnnotations.forEach(ann => {
@@ -457,8 +570,13 @@ function positionUserAnnotationMarkers() {
         if (!style) return;
         
         const wrapperEl = ann._el;
-        const left = ann.x * bounds.width * xMultiplier;
-        const top = ann.y * bounds.height * yMultiplier;
+        
+        // Calculate position on the zoomed/panned image
+        const relativeX = ann.x * bounds.width * xMultiplier * currentZoom;
+        const relativeY = ann.y * bounds.height * yMultiplier * currentZoom;
+        
+        const left = bounds.left + relativeX;
+        const top = bounds.top + relativeY;
 
         wrapperEl.style.left = `${left}px`;
         wrapperEl.style.top = `${top}px`;
@@ -467,12 +585,12 @@ function positionUserAnnotationMarkers() {
             // Area annotation positioning
             const areaElement = wrapperEl.querySelector('.area-annotation');
             if (areaElement) {
-                // Convert relative size back to pixels based on current bounds
+                // Convert relative size back to pixels based on current bounds and zoom
                 const widthRel = ann.widthRel;
                 const heightRel = ann.heightRel;
                 
-                const pixelWidth = widthRel * bounds.width;
-                const pixelHeight = heightRel * bounds.height;
+                const pixelWidth = widthRel * bounds.width * currentZoom;
+                const pixelHeight = heightRel * bounds.height * currentZoom;
                 
                 areaElement.style.width = `${pixelWidth}px`;
                 areaElement.style.height = `${pixelHeight}px`;
@@ -482,7 +600,7 @@ function positionUserAnnotationMarkers() {
             const marker = wrapperEl.querySelector('.marker');
             if (marker) {
                 const baseSize = bounds.width * scale;
-                const userSize = baseSize * (style.scale || 2.0);
+                const userSize = baseSize * (style.scale || 2.0) * currentZoom; // Scale with zoom
                 
                 marker.style.width = `${userSize}px`;
                 marker.style.height = `${userSize}px`;
@@ -572,7 +690,7 @@ toggleAnnotationsBtn.addEventListener('click', () => {
         list.innerHTML = '';
     }
 
-    positionMarkers();
+    scheduleMarkerPositioning();
 });
 
 toggleMarkersBtn.addEventListener('click', () => {
@@ -590,7 +708,7 @@ toggleMarkersBtn.addEventListener('click', () => {
         toggleAnnotationsBtn.classList.remove('active');
     }
 
-    positionMarkers();
+    scheduleMarkerPositioning();
 });
 
 function showLoadingState() {
@@ -635,8 +753,15 @@ function hideLoadingState() {
 function handleImageLoad() {
     try {
         hideLoadingState();
+        
+        currentZoom = 1;
+        imageTranslateX = 0;
+        imageTranslateY = 0;
+        image.style.transform = 'none';
+        image.style.cursor = 'default';
+        
         renderMarkers();
-        positionMarkers();
+        scheduleMarkerPositioning();
 
         if (debug) {
             const debugControls = document.getElementById('debug-controls');
@@ -697,16 +822,200 @@ image.addEventListener('error', handleImageError);
 
 function handleResize() {
     try {
-        // Clear cached bounds on resize
+        currentZoom = 1;
+        imageTranslateX = 0;
+        imageTranslateY = 0;
+        image.style.transform = 'none';
+        image.style.cursor = 'default';
         cachedBounds = null;
-        positionMarkers();
+        scheduleMarkerPositioning();
     } catch (error) {
         console.error('Error during resize handling:', error);
     }
 }
 
+function updateImageTransform() {
+    const transform = `translate(${imageTranslateX}px, ${imageTranslateY}px) scale(${currentZoom})`;
+    image.style.transform = transform;
+    image.style.cursor = currentZoom > 1 ? 'grab' : 'default';
+    
+    // Schedule marker positioning after DOM updates
+    scheduleMarkerPositioning();
+}
+
+function handleWheel(e) {
+    // Don't zoom on horizontal scroll
+    if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        return;
+    }
+    
+    // Check if mouse is over the image wrapper
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const isOverWrapper = e.clientX >= wrapperRect.left && e.clientX <= wrapperRect.right &&
+                         e.clientY >= wrapperRect.top && e.clientY <= wrapperRect.bottom;
+    
+    if (!isOverWrapper) {
+        return;
+    }
+    
+    e.preventDefault();
+    
+    const zoomStep = 0.05;
+    
+    // Calculate mouse position relative to wrapper, accounting for its scroll
+    const mouseX = e.clientX - wrapperRect.left + wrapper.scrollLeft;
+    const mouseY = e.clientY - wrapperRect.top;
+    
+    const oldZoom = currentZoom;
+    if (e.deltaY < 0) {
+        currentZoom = Math.min(currentZoom + zoomStep, maxZoom);
+    } else {
+        currentZoom = Math.max(currentZoom - zoomStep, minZoom);
+    }
+    
+    if (Math.abs(currentZoom - oldZoom) > 0.001) {
+        const targetX = (mouseX - imageTranslateX) / oldZoom;
+        const targetY = (mouseY - imageTranslateY) / oldZoom;
+        
+        imageTranslateX = mouseX - targetX * currentZoom;
+        imageTranslateY = mouseY - targetY * currentZoom;
+        
+        if (currentZoom <= 1) {
+            currentZoom = 1;
+            imageTranslateX = 0;
+            imageTranslateY = 0;
+        }
+        
+        updateImageTransform();
+    }
+}
+
+function handleMouseDown(e) {
+    if (e.target !== image || currentZoom <= 1) return;
+    
+    isPanning = true;
+    panStartX = e.clientX - imageTranslateX;
+    panStartY = e.clientY - imageTranslateY;
+    
+    image.style.cursor = 'grabbing';
+    e.preventDefault();
+}
+
+function handleMouseMove(e) {
+    if (!isPanning) return;
+    
+    imageTranslateX = e.clientX - panStartX;
+    imageTranslateY = e.clientY - panStartY;
+    
+    updateImageTransform();
+    e.preventDefault();
+}
+
+function handleMouseUp(e) {
+    if (!isPanning) return;
+    
+    isPanning = false;
+    image.style.cursor = currentZoom > minZoom ? 'grab' : 'default';
+    e.preventDefault();
+}
+
 
 window.addEventListener('resize', handleResize);
+
+document.addEventListener('wheel', handleWheel, { passive: false });
+image.addEventListener('mousedown', handleMouseDown);
+document.addEventListener('mousemove', handleMouseMove);
+document.addEventListener('mouseup', handleMouseUp);
+
+// Touch support for mobile zoom/pan
+let touchStartDistance = 0;
+let touchStartZoom = 1;
+let touchStartCenter = { x: 0, y: 0 };
+
+function getTouchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+function getTouchCenter(touches) {
+    return {
+        x: (touches[0].clientX + touches[1].clientX) / 2,
+        y: (touches[0].clientY + touches[1].clientY) / 2
+    };
+}
+
+function handleTouchStart(e) {
+    if (e.touches.length === 2) {
+        touchStartDistance = getTouchDistance(e.touches);
+        touchStartZoom = currentZoom;
+        const center = getTouchCenter(e.touches);
+        const wrapperRect = wrapper.getBoundingClientRect();
+        touchStartCenter = {
+            x: center.x - wrapperRect.left + wrapper.scrollLeft,
+            y: center.y - wrapperRect.top
+        };
+        e.preventDefault();
+    } else if (e.touches.length === 1 && currentZoom > 1) {
+        isPanning = true;
+        panStartX = e.touches[0].clientX - imageTranslateX;
+        panStartY = e.touches[0].clientY - imageTranslateY;
+        e.preventDefault();
+    }
+    // Don't preventDefault for single touches at zoom=1 to allow marker interaction
+}
+
+function handleTouchMove(e) {
+    if (e.touches.length === 2) {
+        const currentDistance = getTouchDistance(e.touches);
+        const currentCenter = getTouchCenter(e.touches);
+        
+        const distanceRatio = currentDistance / touchStartDistance;
+        const zoomFactor = Math.max(0.5, Math.min(2.0, distanceRatio));
+        const newZoom = Math.max(minZoom, Math.min(maxZoom, touchStartZoom * zoomFactor));
+        
+        const wrapperRect = wrapper.getBoundingClientRect();
+        const centerX = currentCenter.x - wrapperRect.left + wrapper.scrollLeft;
+        const centerY = currentCenter.y - wrapperRect.top;
+        
+        // Use same logic as desktop wheel zoom for consistency
+        const oldZoom = currentZoom;
+        currentZoom = newZoom;
+        
+        // Touch center is now relative to image coordinate system (same as desktop)
+        const targetX = (centerX - imageTranslateX) / oldZoom;
+        const targetY = (centerY - imageTranslateY) / oldZoom;
+        
+        imageTranslateX = centerX - targetX * currentZoom;
+        imageTranslateY = centerY - targetY * currentZoom;
+        
+        if (currentZoom <= 1) {
+            currentZoom = 1;
+            imageTranslateX = 0;
+            imageTranslateY = 0;
+        }
+        
+        updateImageTransform();
+        e.preventDefault();
+    } else if (e.touches.length === 1 && isPanning) {
+        imageTranslateX = e.touches[0].clientX - panStartX;
+        imageTranslateY = e.touches[0].clientY - panStartY;
+        updateImageTransform();
+        e.preventDefault();
+    }
+}
+
+function handleTouchEnd(e) {
+    if (e.touches.length === 0) {
+        isPanning = false;
+        touchStartDistance = 0;
+    }
+}
+
+// Add touch event listeners
+image.addEventListener('touchstart', handleTouchStart, { passive: false });
+image.addEventListener('touchmove', handleTouchMove, { passive: false });
+image.addEventListener('touchend', handleTouchEnd);
 
 
 if (debug) {
@@ -729,14 +1038,14 @@ if (debug) {
     if (xInput) {
         xInput.addEventListener('input', () => {
             xMultiplier = parseFloat(xInput.value) || 1;
-            positionMarkers();
+            scheduleMarkerPositioning();
         });
     }
 
     if (yInput) {
         yInput.addEventListener('input', () => {
             yMultiplier = parseFloat(yInput.value) || 1;
-            positionMarkers();
+            scheduleMarkerPositioning();
         });
     }
 
@@ -1386,8 +1695,6 @@ function startAddAnnotationModeWithData(annotationData) {
                 shape: currentPlacementData.shape || 'rectangle'
             };
             
-            // Debug log
-            console.log('Creating annotation:', annotation);
             
             // Add area-specific properties
             if (currentIsAreaAnnotation) {
@@ -1596,7 +1903,7 @@ function renderAllMarkers() {
     
     // Position all markers with a small delay to ensure DOM is ready
     requestAnimationFrame(() => {
-        positionMarkers();
+        scheduleMarkerPositioning();
     });
 }
 
@@ -1627,12 +1934,8 @@ function renderPointAnnotation(ann, index, style) {
     marker.style.background = style.bg;
     marker.style.color = style.color;
     
-    // Use shape from annotation or default to rectangle for point annotations
     const shape = ann.shape || 'rectangle';
     marker.style.borderRadius = shape === 'circle' ? '50%' : '8px';
-    
-    // Debug log
-    console.log('Rendering point annotation with shape:', shape, 'from annotation:', ann);
     marker.style.borderColor = style.border;
     marker.style.borderWidth = style.borderWidth || '3px';
     marker.style.borderStyle = style.borderStyle || 'solid';
@@ -1744,6 +2047,24 @@ function addPointAnnotationHoverEvents(wrapperEl, tooltip, ann) {
         hideTimeout = setTimeout(() => tooltip.style.display = 'none', delay);
     });
 
+    // Touch support for mobile - show tooltip on tap
+    wrapperEl.addEventListener('touchstart', (e) => {
+        // Don't show tooltips in edit mode
+        if (editModeEnabled) return;
+        
+        e.preventDefault(); // Prevent mouse events
+        clearTimeout(hideTimeout);
+        showTooltip(tooltip, ann);
+    });
+
+    // Hide tooltip when tapping elsewhere
+    document.addEventListener('touchstart', (e) => {
+        if (!wrapperEl.contains(e.target) && !tooltip.contains(e.target)) {
+            tooltip.style.display = 'none';
+            clearTimeout(hideTimeout);
+        }
+    });
+
     tooltip.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
     tooltip.addEventListener('mouseleave', () => {
         const delay = (config && config.ui && config.ui.tooltipHideDelay) || 100;
@@ -1831,33 +2152,51 @@ function addAreaAnnotationHoverEvents(areaElement, tooltip, ann) {
 }
 
 function showTooltip(tooltip, ann) {
-    const bounds = image.getBoundingClientRect();
-    const x = ann.x * bounds.width;
-    const y = ann.y * bounds.height;
-
     tooltip.style.display = 'block';
     tooltip.style.minWidth = ((config && config.tooltipMinWidth) || 380) + 'px';
 
     requestAnimationFrame(() => {
+        // Get the actual position of the marker on screen (already correctly positioned!)
+        if (!ann._el) return;
+        
+        const markerRect = ann._el.getBoundingClientRect();
+        const markerCenterX = markerRect.left + markerRect.width / 2;
+        const markerCenterY = markerRect.top + markerRect.height / 2;
+        
         const tipWidth = tooltip.offsetWidth;
-        let adjustedX = x;
+        const tipHeight = tooltip.offsetHeight;
+        
+        // Position tooltip relative to the actual marker position
+        let adjustedX = markerCenterX;
+        let adjustedY = markerCenterY;
 
-        if (x - tipWidth / 2 < 0) {
+        // Keep tooltip within viewport bounds horizontally
+        if (markerCenterX - tipWidth / 2 < 0) {
             adjustedX = tipWidth / 2;
-        } else if (x + tipWidth / 2 > bounds.width) {
-            adjustedX = bounds.width - tipWidth / 2;
+        } else if (markerCenterX + tipWidth / 2 > window.innerWidth) {
+            adjustedX = window.innerWidth - tipWidth / 2;
         }
 
-        const offsetY = (y > bounds.height / 2) ? -8 - tooltip.offsetHeight : 8;
+        // Position above or below marker
+        const offsetY = (markerCenterY > window.innerHeight / 2) ? -8 - tipHeight : 8;
+        adjustedY = markerCenterY + offsetY;
+        
+        // Keep tooltip within viewport vertically
+        if (adjustedY < 0) {
+            adjustedY = 8;
+        } else if (adjustedY + tipHeight > window.innerHeight) {
+            adjustedY = window.innerHeight - tipHeight - 8;
+        }
+
         tooltip.style.left = `${adjustedX}px`;
-        tooltip.style.top = `${y + offsetY}px`;
+        tooltip.style.top = `${adjustedY}px`;
     });
 }
 
 function showTooltipAtMouse(tooltip, ann, mouseEvent) {
-    const imageBounds = image.getBoundingClientRect();
-    const x = mouseEvent.clientX - imageBounds.left;
-    const y = mouseEvent.clientY - imageBounds.top;
+    // Use mouse position directly (already in viewport coordinates)
+    const x = mouseEvent.clientX;
+    const y = mouseEvent.clientY;
 
     tooltip.style.display = 'block';
     tooltip.style.minWidth = ((config && config.tooltipMinWidth) || 380) + 'px';
@@ -1868,22 +2207,22 @@ function showTooltipAtMouse(tooltip, ann, mouseEvent) {
         let adjustedX = x;
         let adjustedY = y;
 
-        // Adjust X position to keep tooltip within image bounds
+        // Adjust X position to keep tooltip within viewport
         if (x - tipWidth / 2 < 0) {
             adjustedX = tipWidth / 2;
-        } else if (x + tipWidth / 2 > imageBounds.width) {
-            adjustedX = imageBounds.width - tipWidth / 2;
+        } else if (x + tipWidth / 2 > window.innerWidth) {
+            adjustedX = window.innerWidth - tipWidth / 2;
         }
 
         // Position tooltip above or below mouse, with some offset
-        const offsetY = (y > imageBounds.height / 2) ? -8 - tipHeight : 8;
+        const offsetY = (y > window.innerHeight / 2) ? -8 - tipHeight : 8;
         adjustedY = y + offsetY;
 
-        // Make sure tooltip doesn't go outside image bounds vertically
+        // Make sure tooltip doesn't go outside viewport vertically
         if (adjustedY < 0) {
             adjustedY = 8;
-        } else if (adjustedY + tipHeight > imageBounds.height) {
-            adjustedY = imageBounds.height - tipHeight - 8;
+        } else if (adjustedY + tipHeight > window.innerHeight) {
+            adjustedY = window.innerHeight - tipHeight - 8;
         }
 
         tooltip.style.left = `${adjustedX}px`;
@@ -1993,7 +2332,7 @@ function addUserAnnotationDragListeners(wrapperEl, marker, index) {
         }
         
         // Re-position to exact coordinates
-        positionMarkers();
+        scheduleMarkerPositioning();
         
         e.preventDefault();
     };
@@ -2120,7 +2459,7 @@ function addAreaAnnotationDragListeners(wrapperEl, areaElement, index) {
         }
         
         // Re-position to exact coordinates
-        positionMarkers();
+        scheduleMarkerPositioning();
         
         e.preventDefault();
     };
@@ -2320,5 +2659,5 @@ document.addEventListener('DOMContentLoaded', () => {
 // Handle window resize for area annotations
 window.addEventListener('resize', () => {
     // Re-position all markers on window resize
-    positionMarkers();
+    scheduleMarkerPositioning();
 });
