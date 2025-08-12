@@ -6,6 +6,54 @@ if (typeof config === 'undefined' || typeof annotations === 'undefined') {
 const urlParams = new URLSearchParams(window.location.search);
 const debug = urlParams.has('debug');
 
+// Mobile detection utility
+function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           (window.innerWidth <= 768) ||
+           ('ontouchstart' in window);
+}
+
+// Mobile tooltip handling
+function showMobileTooltip(tooltip, content) {
+    // Hide any existing mobile tooltips
+    hideMobileTooltip();
+    
+    // Add mobile class and content
+    tooltip.classList.add('mobile-tooltip');
+    tooltip.innerHTML = content + '<button class="mobile-close-btn" onclick="hideMobileTooltip()">×</button>';
+    tooltip.style.display = 'block';
+    
+    // Store reference for global access
+    window.currentMobileTooltip = tooltip;
+    
+    // Add click outside handler
+    setTimeout(() => {
+        document.addEventListener('touchstart', handleMobileTooltipOutsideClick, true);
+        document.addEventListener('click', handleMobileTooltipOutsideClick, true);
+    }, 100);
+}
+
+function hideMobileTooltip() {
+    if (window.currentMobileTooltip) {
+        window.currentMobileTooltip.style.display = 'none';
+        window.currentMobileTooltip.classList.remove('mobile-tooltip');
+        window.currentMobileTooltip = null;
+    }
+    
+    // Remove event listeners
+    document.removeEventListener('touchstart', handleMobileTooltipOutsideClick, true);
+    document.removeEventListener('click', handleMobileTooltipOutsideClick, true);
+}
+
+// Make hideMobileTooltip globally accessible
+window.hideMobileTooltip = hideMobileTooltip;
+
+function handleMobileTooltipOutsideClick(e) {
+    if (window.currentMobileTooltip && !window.currentMobileTooltip.contains(e.target)) {
+        hideMobileTooltip();
+    }
+}
+
 let xMultiplier = 1.0;
 let yMultiplier = 1.0;
 
@@ -430,53 +478,61 @@ function renderMarkers() {
             e.preventDefault(); // Prevent mouse events
             clearTimeout(hideTimeout);
             
-            const markerRect = wrapperEl.getBoundingClientRect();
-            const markerCenterX = markerRect.left + markerRect.width / 2;
-            const markerCenterY = markerRect.top + markerRect.height / 2;
+            // Check if mobile device
+            if (isMobileDevice()) {
+                // Use mobile tooltip
+                const content = tooltip.innerHTML;
+                showMobileTooltip(tooltip, content);
+            } else {
+                // Use desktop tooltip positioning
+                const markerRect = wrapperEl.getBoundingClientRect();
+                const markerCenterX = markerRect.left + markerRect.width / 2;
+                const markerCenterY = markerRect.top + markerRect.height / 2;
 
-            tooltip.style.display = 'block';
-            tooltip.style.minWidth = ((config && config.tooltipMinWidth) || 380) + 'px';
+                tooltip.style.display = 'block';
+                tooltip.style.minWidth = ((config && config.tooltipMinWidth) || 380) + 'px';
 
-            requestAnimationFrame(() => {
-                const tipWidth = tooltip.offsetWidth;
-                const tipHeight = tooltip.offsetHeight;
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-                const margin = 10;
+                requestAnimationFrame(() => {
+                    const tipWidth = tooltip.offsetWidth;
+                    const tipHeight = tooltip.offsetHeight;
+                    const viewportWidth = window.innerWidth;
+                    const viewportHeight = window.innerHeight;
+                    const margin = 10;
 
-                // Start with tooltip centered above marker
-                // Note: CSS has transform: translate(-50%, 0) so we position the center point
-                let adjustedX = markerCenterX;
-                let adjustedY = markerCenterY - tipHeight - 15;
+                    // Start with tooltip centered above marker
+                    // Note: CSS has transform: translate(-50%, 0) so we position the center point
+                    let adjustedX = markerCenterX;
+                    let adjustedY = markerCenterY - tipHeight - 15;
 
-                // Keep within horizontal bounds (accounting for CSS centering)
-                if (adjustedX - tipWidth / 2 < margin) {
-                    adjustedX = margin + tipWidth / 2;
-                } else if (adjustedX + tipWidth / 2 > viewportWidth - margin) {
-                    adjustedX = viewportWidth - margin - tipWidth / 2;
-                }
+                    // Keep within horizontal bounds (accounting for CSS centering)
+                    if (adjustedX - tipWidth / 2 < margin) {
+                        adjustedX = margin + tipWidth / 2;
+                    } else if (adjustedX + tipWidth / 2 > viewportWidth - margin) {
+                        adjustedX = viewportWidth - margin - tipWidth / 2;
+                    }
 
-                // Keep within vertical bounds
-                if (adjustedY < margin) {
-                    // Show below marker if not enough space above
-                    adjustedY = markerCenterY + 15;
-                    // Double-check it fits below too
-                    if (adjustedY + tipHeight > viewportHeight - margin) {
+                    // Keep within vertical bounds
+                    if (adjustedY < margin) {
+                        // Show below marker if not enough space above
+                        adjustedY = markerCenterY + 15;
+                        // Double-check it fits below too
+                        if (adjustedY + tipHeight > viewportHeight - margin) {
+                            adjustedY = viewportHeight - tipHeight - margin;
+                        }
+                    } else if (adjustedY + tipHeight > viewportHeight - margin) {
+                        // Move up if tooltip extends below viewport
                         adjustedY = viewportHeight - tipHeight - margin;
                     }
-                } else if (adjustedY + tipHeight > viewportHeight - margin) {
-                    // Move up if tooltip extends below viewport
-                    adjustedY = viewportHeight - tipHeight - margin;
-                }
 
-                tooltip.style.left = `${adjustedX}px`;
-                tooltip.style.top = `${adjustedY}px`;
-            });
+                    tooltip.style.left = `${adjustedX}px`;
+                    tooltip.style.top = `${adjustedY}px`;
+                });
+            }
         });
 
-        // Hide tooltip when tapping elsewhere
+        // Hide tooltip when tapping elsewhere (desktop only)
         document.addEventListener('touchstart', (e) => {
-            if (!wrapperEl.contains(e.target) && !tooltip.contains(e.target)) {
+            if (!isMobileDevice() && !wrapperEl.contains(e.target) && !tooltip.contains(e.target)) {
                 tooltip.style.display = 'none';
                 clearTimeout(hideTimeout);
             }

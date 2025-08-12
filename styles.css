@@ -34,15 +34,13 @@ body {
     cursor: grabbing;
 }
 
-body.annotations-active #image-wrapper {}
-
 #tooltip-layer {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 9999;
+    z-index: 20000;
     pointer-events: none;
 }
 
@@ -1115,5 +1113,54 @@ body.annotations-active #image-wrapper {}
     .delete-btn {
         width: 100%;
         padding: 8px;
+    }
+
+    /* Mobile tooltip styling */
+    .tooltip-box.mobile-tooltip {
+        position: fixed !important;
+        top: 20px !important;
+        left: 15px !important;
+        right: 15px !important;
+        bottom: 20px !important;
+        width: auto !important;
+        min-width: auto !important;
+        max-width: none !important;
+        max-height: calc(100vh - 40px) !important;
+        transform: none !important;
+        background: rgba(20, 20, 20, 0.98);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        padding: 20px;
+        font-size: 16px;
+        line-height: 1.5;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+
+    .tooltip-box.mobile-tooltip .mobile-close-btn {
+        position: fixed;
+        top: 35px;
+        right: 30px;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+        z-index: 20001;
+        backdrop-filter: blur(5px);
+    }
+
+    .tooltip-box.mobile-tooltip .mobile-close-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
     }
 }
