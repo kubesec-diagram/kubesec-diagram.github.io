@@ -17,16 +17,12 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 
 ## Changelog
 
-* WIP
-  * More writings in "The Container Process"
-  * Warning and info if javascript is diabled
-  * ?debug now loads image from ./
-  * Maybes
-    * SecurityContext and PodSecurityContext?
-    * Encryption of secrets, eg, EncryptionConfiguration for etcd
-    * RBAC and how/where role-bindings are. clusterroles and rolebindings, escalate verb, and * policies
-    * PodSecurityAdmission (PSA)
-
+* v9 (2025-08-12)
+  * Added drawing how RBAC, role-bindings and so on works. Many new circles with info.
+  * Info about priority and fairness (rate limiting) in api
+  * Adding info abuot PSA in "Validating and Mutating Admission Control"
+  * Better info about ABAC and it's status
+  * More presice description in "The Container Process"
 * v8 (2025-07-07)
   * Splitting code up from one big file to multiple separate.
   * Adding functionality for user annotation that is saved in the url so it can be shared
