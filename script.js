@@ -38,6 +38,8 @@ let panStartY = 0;
 let imageTranslateX = 0;
 let imageTranslateY = 0;
 let isPositioningMarkers = false;
+let boundsFrameId = null;
+let isTouchActive = false;
 
 // User annotations variables
 let userAnnotations = [];
@@ -500,14 +502,33 @@ function renderMarkers() {
     scheduleMarkerPositioning();
 }
 
-function getImageBounds() {
+function getImageBounds(forceRefresh = false) {
+    // During touch gestures, use cached bounds to avoid stale DOM readings
+    if (!forceRefresh && isTouchActive && cachedBounds) {
+        // Apply current translate values to cached bounds
+        const translateAdjustedBounds = {
+            ...cachedBounds,
+            left: cachedBounds.left + imageTranslateX,
+            top: cachedBounds.top + imageTranslateY,
+            right: cachedBounds.right + imageTranslateX,
+            bottom: cachedBounds.bottom + imageTranslateY
+        };
+        return translateAdjustedBounds;
+    }
+    
+    // Force a layout reflow to ensure DOM is up-to-date
+    if (forceRefresh || !cachedBounds) {
+        // Reading offsetHeight forces layout
+        void image.offsetHeight;
+    }
+    
     const wrapperRect = wrapper.getBoundingClientRect();
     const displayedWidth = image.offsetWidth || image.clientWidth;
     const displayedHeight = image.offsetHeight || image.clientHeight;
     const effectiveLeft = wrapperRect.left + imageTranslateX;
     const effectiveTop = wrapperRect.top + imageTranslateY;
     
-    return {
+    const bounds = {
         left: effectiveLeft,
         top: effectiveTop,
         width: displayedWidth,
@@ -515,11 +536,47 @@ function getImageBounds() {
         right: effectiveLeft + displayedWidth,
         bottom: effectiveTop + displayedHeight
     };
+    
+    // Cache bounds when not in touch mode
+    if (!isTouchActive) {
+        cachedBounds = {
+            left: wrapperRect.left,
+            top: wrapperRect.top,
+            width: displayedWidth,
+            height: displayedHeight,
+            right: wrapperRect.left + displayedWidth,
+            bottom: wrapperRect.top + displayedHeight
+        };
+    }
+    
+    return bounds;
 }
 
-function scheduleMarkerPositioning() {
+function isValidBounds(bounds) {
+    return bounds && 
+           typeof bounds.left === 'number' && 
+           typeof bounds.top === 'number' && 
+           typeof bounds.width === 'number' && 
+           typeof bounds.height === 'number' &&
+           bounds.width > 0 && 
+           bounds.height > 0 &&
+           !isNaN(bounds.left) && 
+           !isNaN(bounds.top) &&
+           !isNaN(bounds.width) && 
+           !isNaN(bounds.height);
+}
+
+function scheduleMarkerPositioning(immediate = false) {
     // Prevent overlapping positioning calls
     if (isPositioningMarkers) return;
+    
+    // During touch gestures, position immediately to avoid timing issues
+    if (immediate || isTouchActive) {
+        isPositioningMarkers = true;
+        positionMarkers();
+        isPositioningMarkers = false;
+        return;
+    }
     
     isPositioningMarkers = true;
     requestAnimationFrame(() => {
@@ -530,6 +587,13 @@ function scheduleMarkerPositioning() {
 
 function positionMarkers() {
     const bounds = getImageBounds();
+    
+    // Validate bounds to prevent positioning with invalid coordinates
+    if (!isValidBounds(bounds)) {
+        console.warn('Invalid bounds detected, skipping marker positioning');
+        return;
+    }
+    
     const scale = (config && config.markerScale) || 0.01;
 
     annotations.forEach(ann => {
@@ -561,6 +625,13 @@ function positionMarkers() {
 
 function positionUserAnnotationMarkers() {
     const bounds = getImageBounds();
+    
+    // Validate bounds to prevent positioning with invalid coordinates
+    if (!isValidBounds(bounds)) {
+        console.warn('Invalid bounds detected, skipping user annotation positioning');
+        return;
+    }
+    
     const scale = (config && config.markerScale) || 0.01;
 
     userAnnotations.forEach(ann => {
@@ -827,8 +898,12 @@ function handleResize() {
         imageTranslateY = 0;
         image.style.transform = 'none';
         image.style.cursor = 'default';
+        
+        // Clear bounds cache and ensure touch is not active during resize
         cachedBounds = null;
-        scheduleMarkerPositioning();
+        isTouchActive = false;
+        
+        scheduleMarkerPositioning(true); // Immediate positioning after resize
     } catch (error) {
         console.error('Error during resize handling:', error);
     }
@@ -839,8 +914,8 @@ function updateImageTransform() {
     image.style.transform = transform;
     image.style.cursor = currentZoom > 1 ? 'grab' : 'default';
     
-    // Schedule marker positioning after DOM updates
-    scheduleMarkerPositioning();
+    // Use immediate positioning during touch gestures to avoid timing issues
+    scheduleMarkerPositioning(isTouchActive);
 }
 
 function handleWheel(e) {
@@ -946,6 +1021,13 @@ function getTouchCenter(touches) {
 }
 
 function handleTouchStart(e) {
+    // Mark touch as active to enable special handling
+    isTouchActive = true;
+    
+    // Cache bounds at start of touch to avoid stale readings during gesture
+    cachedBounds = null;
+    getImageBounds(true); // Force refresh and cache
+    
     if (e.touches.length === 2) {
         touchStartDistance = getTouchDistance(e.touches);
         touchStartZoom = currentZoom;
@@ -1009,6 +1091,13 @@ function handleTouchEnd(e) {
     if (e.touches.length === 0) {
         isPanning = false;
         touchStartDistance = 0;
+        
+        // Mark touch as inactive and refresh bounds cache
+        isTouchActive = false;
+        cachedBounds = null;
+        
+        // Final positioning update with fresh bounds
+        scheduleMarkerPositioning(true);
     }
 }
 

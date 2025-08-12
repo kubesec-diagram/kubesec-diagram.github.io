@@ -34,8 +34,7 @@ body {
     cursor: grabbing;
 }
 
-body.annotations-active #image-wrapper {
-}
+body.annotations-active #image-wrapper {}
 
 #tooltip-layer {
     position: absolute;
@@ -147,7 +146,7 @@ body.annotations-active #image-wrapper {
     position: fixed;
     bottom: 10px;
     left: 10px;
-    font-size: 12px;
+    font-size: 16px;
     color: #888;
     display: flex;
     flex-direction: column;
@@ -170,7 +169,7 @@ body.annotations-active #image-wrapper {
 }
 
 .footer-control {
-    font-size: 12px;
+    font-size: 16px;
     color: #4fc3f7;
     cursor: pointer;
     padding: 4px 0 4px 24px;
@@ -278,7 +277,7 @@ body.annotations-active #image-wrapper {
 }
 
 .footer-github {
-    font-size: 12px;
+    font-size: 16px;
     color: #4fc3f7;
     display: flex;
     gap: 4px;
@@ -342,7 +341,8 @@ body.annotations-active #image-wrapper {
 
 /* User Annotations Styles */
 .user-annotation-marker {
-    transform: scale(2) translate(-25%, -25%); /* 2x larger and adjusted centering */
+    transform: scale(2) translate(-25%, -25%);
+    /* 2x larger and adjusted centering */
     font-size: 12px !important;
     min-width: 20px;
     min-height: 20px;
@@ -508,7 +508,7 @@ body.annotations-active #image-wrapper {
     color: white;
     font-size: 14px;
     font-weight: bold;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .type-selection {
@@ -736,12 +736,12 @@ body.annotations-active #image-wrapper {
     transition: all 0.2s;
 }
 
-.edit-mode-toggle input[type="checkbox"]:checked + .checkmark {
+.edit-mode-toggle input[type="checkbox"]:checked+.checkmark {
     background: #4fc3f7;
     border-color: #4fc3f7;
 }
 
-.edit-mode-toggle input[type="checkbox"]:checked + .checkmark::after {
+.edit-mode-toggle input[type="checkbox"]:checked+.checkmark::after {
     content: '✓';
     position: absolute;
     top: -1px;
@@ -845,7 +845,8 @@ body.annotations-active #image-wrapper {
     gap: 8px;
 }
 
-.edit-btn, .delete-btn {
+.edit-btn,
+.delete-btn {
     padding: 4px 8px;
     font-size: 12px;
     border: none;
@@ -1063,54 +1064,55 @@ body.annotations-active #image-wrapper {
     .modal {
         padding: 10px;
     }
-    
+
     .modal-content {
         max-width: 100%;
         max-height: calc(100vh - 20px);
     }
-    
+
     .modal-body {
         min-width: auto;
         padding: 15px;
     }
-    
+
     .form-row {
         flex-direction: column;
         gap: 15px;
     }
-    
+
     .type-preview-group {
         max-width: none;
     }
-    
+
     .size-controls {
         flex-direction: column;
         gap: 10px;
         align-items: flex-start;
     }
-    
+
     .modal-actions {
         flex-direction: column;
     }
-    
+
     .modal-actions button {
         width: 100%;
     }
-    
+
     .form-actions {
         flex-direction: column;
     }
-    
+
     .form-actions button {
         width: 100%;
     }
-    
+
     .annotation-item-actions {
         flex-direction: column;
         gap: 5px;
     }
-    
-    .edit-btn, .delete-btn {
+
+    .edit-btn,
+    .delete-btn {
         width: 100%;
         padding: 8px;
     }
