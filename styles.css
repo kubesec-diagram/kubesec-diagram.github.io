@@ -13,6 +13,10 @@
     --toggle-bg: #0369a1;
     --toggle-border: rgba(14, 165, 233, 0.8);
     --toggle-text: #e0f2fe;
+    --pan-indicator-bg: rgba(2, 6, 23, 0.9);
+    --pan-indicator-border: rgba(186, 230, 253, 0.62);
+    --pan-indicator-text: rgba(240, 249, 255, 1);
+    --pan-indicator-edge-size: 12px;
 }
 
 /* Fallback for older browsers that don't support svh */
@@ -78,66 +82,107 @@ body.mobile-tooltip-open::before {
 
 .pan-indicator {
     position: absolute;
-    width: 14px;
-    height: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: rgba(219, 234, 254, 0.48);
-    background: rgba(15, 23, 42, 0.1);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 999px;
-    backdrop-filter: blur(3px);
-    font-size: 9px;
-    line-height: 1;
+    color: var(--pan-indicator-text);
+    backdrop-filter: blur(4px);
     opacity: 0;
-    transform: scale(0.9);
-    transition: opacity 0.16s ease, transform 0.16s ease;
+    transition: opacity 0.18s ease;
+    box-shadow: none;
+    overflow: hidden;
+}
+
+.pan-indicator::before {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.pan-indicator-up::before {
+    border-width: 0 5px 7px 5px;
+    border-color: transparent transparent currentColor transparent;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.pan-indicator-right::before {
+    border-width: 5px 0 5px 7px;
+    border-color: transparent transparent transparent currentColor;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.pan-indicator-down::before {
+    border-width: 7px 5px 0 5px;
+    border-color: currentColor transparent transparent transparent;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.pan-indicator-left::before {
+    border-width: 5px 7px 5px 0;
+    border-color: transparent currentColor transparent transparent;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .pan-indicator.active {
-    opacity: 0.52;
-    transform: scale(1);
+    opacity: 0.9;
 }
 
 .pan-indicator-up {
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%) scale(0.9);
-}
-
-.pan-indicator-up.active {
-    transform: translateX(-50%) scale(1);
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--pan-indicator-edge-size);
+    background: linear-gradient(180deg,
+            color-mix(in srgb, var(--pan-indicator-bg) 92%, black 8%) 0%,
+            var(--pan-indicator-bg) 48%,
+            rgba(2, 6, 23, 0) 100%);
 }
 
 .pan-indicator-right {
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%) scale(0.9);
-}
-
-.pan-indicator-right.active {
-    transform: translateY(-50%) scale(1);
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--pan-indicator-edge-size);
+    background: linear-gradient(270deg,
+            color-mix(in srgb, var(--pan-indicator-bg) 92%, black 8%) 0%,
+            var(--pan-indicator-bg) 50%,
+            rgba(2, 6, 23, 0) 100%);
 }
 
 .pan-indicator-down {
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%) scale(0.9);
-}
-
-.pan-indicator-down.active {
-    transform: translateX(-50%) scale(1);
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--pan-indicator-edge-size);
+    background: linear-gradient(0deg,
+            color-mix(in srgb, var(--pan-indicator-bg) 92%, black 8%) 0%,
+            var(--pan-indicator-bg) 48%,
+            rgba(2, 6, 23, 0) 100%);
 }
 
 .pan-indicator-left {
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%) scale(0.9);
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--pan-indicator-edge-size);
+    background: linear-gradient(90deg,
+            color-mix(in srgb, var(--pan-indicator-bg) 92%, black 8%) 0%,
+            var(--pan-indicator-bg) 50%,
+            rgba(2, 6, 23, 0) 100%);
 }
 
-.pan-indicator-left.active {
-    transform: translateY(-50%) scale(1);
+.pan-indicator::before {
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--pan-indicator-text) 80%, transparent));
 }
 
 #main-image {
@@ -952,6 +997,9 @@ body.theme-dark {
     --toggle-bg: #0f172a;
     --toggle-border: rgba(148, 163, 184, 0.7);
     --toggle-text: #dbeafe;
+    --pan-indicator-bg: rgba(2, 6, 23, 0.84);
+    --pan-indicator-border: rgba(191, 219, 254, 0.72);
+    --pan-indicator-text: rgba(240, 249, 255, 1);
 }
 
 body.theme-dark .filter-highlight-line {
@@ -1152,6 +1200,40 @@ body.mobile-tooltip-open .mobile-go-to-indicator {
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
+    :root {
+        --pan-indicator-edge-size: 10px;
+    }
+
+    .pan-indicator {
+        backdrop-filter: blur(3px);
+    }
+
+    .pan-indicator-up,
+    .pan-indicator-down {
+        height: var(--pan-indicator-edge-size);
+    }
+
+    .pan-indicator-right,
+    .pan-indicator-left {
+        width: var(--pan-indicator-edge-size);
+    }
+
+    .pan-indicator-up::before {
+        border-width: 0 4px 6px 4px;
+    }
+
+    .pan-indicator-right::before {
+        border-width: 4px 0 4px 6px;
+    }
+
+    .pan-indicator-down::before {
+        border-width: 6px 4px 0 4px;
+    }
+
+    .pan-indicator-left::before {
+        border-width: 4px 6px 4px 0;
+    }
+
     .floating-fit-toggle {
         display: none;
     }

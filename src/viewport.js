@@ -16,19 +16,15 @@ window.createViewportService = function createViewportService(deps) {
 
     panIndicatorUp = document.createElement("div");
     panIndicatorUp.className = "pan-indicator pan-indicator-up";
-    panIndicatorUp.textContent = "^";
 
     panIndicatorRight = document.createElement("div");
     panIndicatorRight.className = "pan-indicator pan-indicator-right";
-    panIndicatorRight.textContent = ">";
 
     panIndicatorDown = document.createElement("div");
     panIndicatorDown.className = "pan-indicator pan-indicator-down";
-    panIndicatorDown.textContent = "v";
 
     panIndicatorLeft = document.createElement("div");
     panIndicatorLeft.className = "pan-indicator pan-indicator-left";
-    panIndicatorLeft.textContent = "<";
 
     panIndicatorLayer.appendChild(panIndicatorUp);
     panIndicatorLayer.appendChild(panIndicatorRight);
