@@ -1,4 +1,10 @@
 window.createTagControlsService = function createTagControlsService(deps) {
+  function getLevelLabel(level, maxLevel) {
+    const normalizedLevel = Math.max(0, Number.parseInt(level, 10) || 0);
+    const normalizedMax = Math.max(0, Number.parseInt(maxLevel, 10) || 0);
+    return normalizedLevel >= normalizedMax ? "max" : `${normalizedLevel}`;
+  }
+
   function applyTagVisibility(tag) {
     const elements = deps.getDiagramTagElements().get(tag);
     if (!elements) return;
@@ -45,9 +51,12 @@ window.createTagControlsService = function createTagControlsService(deps) {
     deps.setDiagramTagElements(nextDiagramTagElements);
 
     const taggedElements = deps.image.querySelectorAll("[data-tags]");
+    let maxDiscoveredLevel = 0;
     taggedElements.forEach((el) => {
       const tags = deps.parseTags(el.getAttribute("data-tags"));
+      maxDiscoveredLevel = Math.max(maxDiscoveredLevel, deps.getTagLevel(tags));
       tags.forEach((tag) => {
+        if (deps.isLevelTag(tag)) return;
         if (!nextDiagramTagElements.has(tag)) {
           nextDiagramTagElements.set(tag, []);
         }
@@ -55,12 +64,90 @@ window.createTagControlsService = function createTagControlsService(deps) {
       });
     });
 
+    const hasInitialSelectedLevel =
+      typeof deps.getHasInitialSelectedLevel === "function"
+        ? deps.getHasInitialSelectedLevel()
+        : false;
+
+    if (typeof deps.setMaxDiagramLevel === "function") {
+      deps.setMaxDiagramLevel(maxDiscoveredLevel);
+    }
+    if (typeof deps.getSelectedLevel === "function" && typeof deps.setSelectedLevel === "function") {
+      const selectedLevel = deps.getSelectedLevel();
+      const parsedSelectedLevel = Number.parseInt(selectedLevel, 10);
+      const fallbackLevel = maxDiscoveredLevel;
+      const initialLevel = Number.isFinite(parsedSelectedLevel) ? parsedSelectedLevel : fallbackLevel;
+      const clampedLevel = Math.max(0, Math.min(maxDiscoveredLevel, initialLevel));
+      if (!hasInitialSelectedLevel && maxDiscoveredLevel > 0) {
+        deps.setSelectedLevel(maxDiscoveredLevel);
+      } else if (clampedLevel !== selectedLevel) {
+        deps.setSelectedLevel(clampedLevel);
+      }
+    }
+
+    if (maxDiscoveredLevel > 0) {
+      const levelWrap = document.createElement("div");
+      levelWrap.className = "level-filter-control";
+
+      const levelHeader = document.createElement("div");
+      levelHeader.className = "level-filter-header";
+
+      const levelTitle = document.createElement("div");
+      levelTitle.className = "tag-group-title";
+      levelTitle.textContent = "Level";
+
+      const levelValue = document.createElement("strong");
+      levelValue.className = "level-filter-value";
+
+      const levelInput = document.createElement("input");
+      levelInput.type = "range";
+      levelInput.className = "level-filter-slider";
+      levelInput.min = "0";
+      levelInput.max = `${maxDiscoveredLevel}`;
+      levelInput.step = "1";
+
+      const selectedLevelRaw =
+        typeof deps.getSelectedLevel === "function" ? deps.getSelectedLevel() : maxDiscoveredLevel;
+      const selectedLevel = Number.parseInt(selectedLevelRaw, 10);
+      const clampedSelectedLevel = Math.max(
+        0,
+        Math.min(maxDiscoveredLevel, Number.isFinite(selectedLevel) ? selectedLevel : maxDiscoveredLevel),
+      );
+      levelInput.value = `${clampedSelectedLevel}`;
+      levelValue.textContent = `Level ${getLevelLabel(clampedSelectedLevel, maxDiscoveredLevel)}`;
+
+      const handleLevelChange = () => {
+        const nextLevel = Math.max(
+          0,
+          Math.min(maxDiscoveredLevel, Number.parseInt(levelInput.value, 10) || 0),
+        );
+        levelValue.textContent = `Level ${getLevelLabel(nextLevel, maxDiscoveredLevel)}`;
+        deps.setSelectedLevel(nextLevel);
+        deps.applyAnnotationFilter();
+        deps.updateURLState();
+      };
+
+      levelInput.addEventListener("input", handleLevelChange);
+      levelInput.addEventListener("change", handleLevelChange);
+
+      levelHeader.appendChild(levelTitle);
+      levelHeader.appendChild(levelValue);
+      levelWrap.appendChild(levelHeader);
+      levelWrap.appendChild(levelInput);
+      deps.filterTagControls.appendChild(levelWrap);
+    }
+
     const discoveredTags = Array.from(nextDiagramTagElements.keys()).sort((a, b) =>
       a.localeCompare(b),
     );
     if (discoveredTags.length === 0) {
-      deps.filterTagControls.innerHTML =
-        '<div class="filter-result-item"><small>No tags found in this diagram.</small></div>';
+      const message = document.createElement("div");
+      message.className = "filter-result-item";
+      message.innerHTML =
+        maxDiscoveredLevel > 0
+          ? "<small>No regular tags found in this diagram.</small>"
+          : "<small>No tags found in this diagram.</small>";
+      deps.filterTagControls.appendChild(message);
       return;
     }
 

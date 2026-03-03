@@ -596,6 +596,31 @@ body.diagram-fit-blackframe #main-image {
     gap: 8px;
 }
 
+.level-filter-control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.level-filter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.level-filter-value {
+    font-size: 12px;
+    font-weight: 700;
+    color: #dbeafe;
+}
+
+.level-filter-slider {
+    width: 100%;
+    margin: 0;
+    accent-color: #38bdf8;
+}
+
 .tag-group-title {
     font-size: 11px;
     text-transform: uppercase;

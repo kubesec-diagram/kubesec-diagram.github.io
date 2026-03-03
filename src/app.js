@@ -76,6 +76,8 @@ let filterPanelOpen = false;
 let filterPanelOverlayMode = true;
 let pinnedHelpSlugs = new Set();
 let onlyShowPinned = false;
+let selectedLevel = 0;
+let maxDiagramLevel = 0;
 let fitAllMode = false;
 let fitGeometryMode = "cover";
 let pendingCoverSyncAfterFitExit = false;
@@ -85,6 +87,7 @@ const FILTER_HIDE_TAGS_PARAM = "filter-hide-tags";
 const FILTER_QUERY_PARAM = "filter-query";
 const FILTER_PINS_PARAM = "pins";
 const FILTER_CONSTRAINT_PARAM = "constraint";
+const FILTER_LEVEL_PARAM = "filter-level";
 const THEME_STORAGE_KEY = "kubesec-theme";
 const FILTER_DOCK_MIN_IMAGE_WIDTH = 1100;
 const FILTER_SEARCH_PLACEHOLDER_DEFAULT = "Search annotations...";
@@ -790,6 +793,7 @@ if (typeof window.createTagUtilsService !== "function") {
 const tagUtilsService = window.createTagUtilsService({
   getConfig: () => config,
   getTagVisibility: () => tagVisibility,
+  getSelectedLevel: () => selectedLevel,
 });
 
 if (typeof window.createUserAnnotationPositioningService !== "function") {
@@ -873,6 +877,8 @@ const urlStateService = window.createUrlStateService({
   getAnnotationSearchQuery: () => annotationSearchQuery,
   getPinnedSlugs: () => Array.from(pinnedHelpSlugs).sort((a, b) => a.localeCompare(b)),
   getFilterConstraints: () => (onlyShowPinned ? ["pinned"] : []),
+  getSelectedLevel: () => selectedLevel,
+  getDefaultSelectedLevel: () => maxDiagramLevel,
   getUserAnnotations: () => userAnnotations,
   getMaxUserAnnotations: () => (config && config.maxUserAnnotations) || 10,
   menuVisibleParam: MENU_VISIBLE_PARAM,
@@ -880,6 +886,7 @@ const urlStateService = window.createUrlStateService({
   filterQueryParam: FILTER_QUERY_PARAM,
   pinsParam: FILTER_PINS_PARAM,
   constraintParam: FILTER_CONSTRAINT_PARAM,
+  filterLevelParam: FILTER_LEVEL_PARAM,
 });
 
 if (typeof window.createTooltipService !== "function") {
@@ -1083,9 +1090,13 @@ const filterResultsService = window.createFilterResultsService({
   normalizeQuery: (query) => helpUtilsService.normalizeQuery(query),
   helpMatchesSearch: (record, query) => helpUtilsService.helpMatchesSearch(record, query),
   isTagSetVisible: (tags) => tagUtilsService.isTagSetVisible(tags),
+  isTagSetWithinSelectedLevel: (tags) =>
+    tagUtilsService.isTagSetWithinSelectedLevel(tags),
   isTagSetDisabledByHiddenGroup: (tags) =>
     tagUtilsService.isTagSetDisabledByHiddenGroup(tags),
   getHiddenDisableTags: (tags) => tagUtilsService.getHiddenDisableTags(tags),
+  getTagLevel: (tags) => tagUtilsService.getTagLevel(tags),
+  getSelectedLevel: () => selectedLevel,
   getSortedVisibleTags: (tags) => tagUtilsService.getSortedVisibleTags(tags),
   compareTagsByFilterOrder: (a, b) => tagUtilsService.compareTagsByFilterOrder(a, b),
   buildTagBadgesHtml: (tags) => tagUtilsService.buildTagBadgesHtml(tags),
@@ -1105,6 +1116,7 @@ const filterResultsService = window.createFilterResultsService({
   goToHelpRecord,
   updateSvgElementVisibility: (element) =>
     svgHelpService.updateSvgElementVisibility(element),
+  getTaggedElements: () => image.querySelectorAll("[data-tags]"),
   updateFilterResultSummary: (helpVisible, helpTotal, query) => {
     filterResultCount.textContent = helpUtilsService.getFilterResultSummary(
       helpVisible,
@@ -1181,8 +1193,11 @@ const svgHelpService = window.createSvgHelpService({
   getOnlyShowPinned: () => onlyShowPinned,
   getTooltipHideDelay: () => (config && config.ui && config.ui.tooltipHideDelay) || 100,
   getTagVisibility: () => tagVisibility,
+  isTagSetVisible: (tags) => tagUtilsService.isTagSetVisible(tags),
   isTagSetDisabledByHiddenGroup: (tags) =>
     tagUtilsService.isTagSetDisabledByHiddenGroup(tags),
+  isTagSetWithinSelectedLevel: (tags) =>
+    tagUtilsService.isTagSetWithinSelectedLevel(tags),
   getHiddenDisableTags: (tags) => tagUtilsService.getHiddenDisableTags(tags),
   getSvgHelpRecordByElement: () => svgHelpRecordByElement,
 });
@@ -1213,12 +1228,14 @@ const svgLoaderService = window.createSvgLoaderService({
 const initialFilterState = urlStateService.parseFilterStateFromURL();
 const initialHiddenTags = new Set(initialFilterState.hiddenTags || []);
 const hasInitialHiddenTags = Boolean(initialFilterState.hasHiddenTags);
+const hasInitialSelectedLevel = Boolean(initialFilterState.hasLevel);
 annotationSearchQuery = initialFilterState.query || "";
 filterPanelOpen = Boolean(initialFilterState.open);
 pinnedHelpSlugs = new Set(initialFilterState.pinnedSlugs || []);
 onlyShowPinned = Array.isArray(initialFilterState.constraints)
   ? initialFilterState.constraints.includes("pinned")
   : false;
+selectedLevel = Math.max(0, Number.parseInt(initialFilterState.level, 10) || 0);
 filterSearchInput.value = annotationSearchQuery;
 
 if (typeof window.createTagControlsService !== "function") {
@@ -1230,6 +1247,8 @@ const tagControlsService = window.createTagControlsService({
   image,
   filterTagControls,
   parseTags: (tagValue) => tagUtilsService.parseTags(tagValue),
+  isLevelTag: (tag) => tagUtilsService.isLevelTag(tag),
+  getTagLevel: (tags) => tagUtilsService.getTagLevel(tags),
   getTagMeta: (tag) => tagUtilsService.getTagMeta(tag),
   getTagGroupMeta: (groupId) => tagUtilsService.getTagGroupMeta(groupId),
   getTagVisibility: () => tagVisibility,
@@ -1239,6 +1258,17 @@ const tagControlsService = window.createTagControlsService({
   },
   getInitialHiddenTags: () => initialHiddenTags,
   getHasInitialHiddenTags: () => hasInitialHiddenTags,
+  getHasInitialSelectedLevel: () => hasInitialSelectedLevel,
+  getSelectedLevel: () => selectedLevel,
+  setSelectedLevel: (value) => {
+    selectedLevel = Math.max(0, Number.parseInt(value, 10) || 0);
+  },
+  setMaxDiagramLevel: (value) => {
+    maxDiagramLevel = Math.max(0, Number.parseInt(value, 10) || 0);
+    if (selectedLevel > maxDiagramLevel) {
+      selectedLevel = maxDiagramLevel;
+    }
+  },
   updateSvgElementVisibility: (element) =>
     svgHelpService.updateSvgElementVisibility(element),
   applyAnnotationFilter: () => filterResultsService.applyAnnotationFilter(),

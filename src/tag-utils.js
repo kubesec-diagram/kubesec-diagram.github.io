@@ -61,7 +61,33 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
   }
 
   function getSortedVisibleTags(tags) {
-    return [...new Set((tags || []).filter(Boolean))].sort(compareTagsByFilterOrder);
+    return [...new Set(getNonLevelTags(tags))].sort(compareTagsByFilterOrder);
+  }
+
+  function isLevelTag(tag) {
+    return /^level-\d+$/i.test(`${tag || ""}`.trim());
+  }
+
+  function parseLevelTag(tag) {
+    const match = `${tag || ""}`.trim().toLowerCase().match(/^level-(\d+)$/);
+    if (!match) return null;
+    const parsed = Number.parseInt(match[1], 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function getTagLevel(tags) {
+    let level = 0;
+    (tags || []).forEach((tag) => {
+      const parsed = parseLevelTag(tag);
+      if (Number.isFinite(parsed)) {
+        level = Math.max(level, parsed);
+      }
+    });
+    return level;
+  }
+
+  function getNonLevelTags(tags) {
+    return (tags || []).filter((tag) => tag && !isLevelTag(tag));
   }
 
   function buildTagBadgesHtml(tags) {
@@ -134,7 +160,14 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
 
   function isTagSetVisible(tags) {
     const visibility = deps.getTagVisibility();
-    return (tags || []).every((tag) => visibility.get(tag) !== false);
+    return getNonLevelTags(tags).every((tag) => visibility.get(tag) !== false);
+  }
+
+  function isTagSetWithinSelectedLevel(tags) {
+    const selectedLevelRaw =
+      typeof deps.getSelectedLevel === "function" ? deps.getSelectedLevel() : 0;
+    const selectedLevel = Math.max(0, Number.parseInt(selectedLevelRaw, 10) || 0);
+    return getTagLevel(tags) <= selectedLevel;
   }
 
   function isTagSetDisabledByHiddenGroup(tags) {
@@ -143,7 +176,7 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
 
   function getHiddenDisableTags(tags) {
     const visibility = deps.getTagVisibility();
-    return (tags || []).filter((tag) => {
+    return getNonLevelTags(tags).filter((tag) => {
       const meta = getTagMeta(tag);
       const group = getTagGroupMeta(meta.group || "general");
       return group.disableHelpIfHidden === true && visibility.get(tag) === false;
@@ -156,12 +189,17 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
     getTagMeta,
     getTagGroupMeta,
     compareTagsByFilterOrder,
+    isLevelTag,
+    parseLevelTag,
+    getTagLevel,
+    getNonLevelTags,
     getSortedVisibleTags,
     buildTagBadgesHtml,
     getPrimarySeverityTag,
     applySeverityStyleToElement,
     getSeverityClassForTags,
     isTagSetVisible,
+    isTagSetWithinSelectedLevel,
     isTagSetDisabledByHiddenGroup,
     getHiddenDisableTags,
   };

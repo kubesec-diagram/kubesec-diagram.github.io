@@ -39,15 +39,28 @@ window.createFilterResultsService = function createFilterResultsService(deps) {
     applyAnnotationFilter();
   }
 
-  function formatHiddenReason(hiddenTags) {
-    const tags = Array.isArray(hiddenTags) ? hiddenTags.filter(Boolean) : [];
-    if (tags.length === 0) {
+  function formatHiddenReason(options = {}) {
+    const hiddenTags = Array.isArray(options.hiddenTags) ? options.hiddenTags.filter(Boolean) : [];
+    const hiddenByLevel = Boolean(options.hiddenByLevel);
+    const recordLevel = Number.isFinite(options.recordLevel) ? options.recordLevel : 0;
+    const selectedLevel = Number.isFinite(options.selectedLevel) ? options.selectedLevel : 0;
+
+    if (hiddenByLevel && hiddenTags.length > 0) {
+      const quoted = hiddenTags.map((tag) => `\"${tag}\"`).join(", ");
+      return `Hidden because tags ${quoted} are filtered out and level-${recordLevel} is above selected level-${selectedLevel}.`;
+    }
+
+    if (hiddenByLevel) {
+      return `Hidden because level-${recordLevel} is above selected level-${selectedLevel}.`;
+    }
+
+    if (hiddenTags.length === 0) {
       return "Hidden because one or more required tags are filtered out.";
     }
-    if (tags.length === 1) {
-      return `Hidden because tag \"${tags[0]}\" is filtered out.`;
+    if (hiddenTags.length === 1) {
+      return `Hidden because tag \"${hiddenTags[0]}\" is filtered out.`;
     }
-    const quoted = tags.map((tag) => `\"${tag}\"`).join(", ");
+    const quoted = hiddenTags.map((tag) => `\"${tag}\"`).join(", ");
     return `Hidden because tags ${quoted} are filtered out.`;
   }
 
@@ -210,7 +223,7 @@ window.createFilterResultsService = function createFilterResultsService(deps) {
 
   function createResultItem(record, options = {}) {
     const inactive = Boolean(options.inactive);
-    const hiddenReason = inactive ? formatHiddenReason(options.hiddenTags) : "";
+    const hiddenReason = inactive ? formatHiddenReason(options) : "";
     const item = document.createElement("div");
     item.className = "filter-result-item";
     item._filterRecord = record;
@@ -341,7 +354,9 @@ window.createFilterResultsService = function createFilterResultsService(deps) {
       (record) =>
         onlyShowPinned
           ? isRecordPinned(record)
-          : deps.helpMatchesSearch(record, query) && deps.isTagSetVisible(record.tags),
+          : deps.helpMatchesSearch(record, query) &&
+            deps.isTagSetVisible(record.tags) &&
+            deps.isTagSetWithinSelectedLevel(record.tags),
     );
 
     function getEntryTags(entry) {
@@ -381,10 +396,16 @@ window.createFilterResultsService = function createFilterResultsService(deps) {
       .filter(Boolean)
       .map((entry) => {
         const hiddenTags = deps.getHiddenDisableTags(entry.record.tags || []);
+        const recordLevel = deps.getTagLevel(entry.record.tags || []);
+        const selectedLevel = deps.getSelectedLevel();
+        const hiddenByLevel = !deps.isTagSetWithinSelectedLevel(entry.record.tags || []);
         return {
           ...entry,
-          inactive: hiddenTags.length > 0,
+          inactive: hiddenTags.length > 0 || hiddenByLevel,
           hiddenTags,
+          hiddenByLevel,
+          selectedLevel,
+          recordLevel,
         };
       })
       .sort((a, b) => {
@@ -451,6 +472,7 @@ window.createFilterResultsService = function createFilterResultsService(deps) {
     const onlyShowPinned = deps.getOnlyShowPinned();
     deps.setFilterControlsDisabled(onlyShowPinned);
 
+    const updatedElements = new Set();
     deps.getSvgHelpRecords().forEach((record) => {
       if (onlyShowPinned) {
         record.searchMatch = isRecordPinned(record);
@@ -459,7 +481,18 @@ window.createFilterResultsService = function createFilterResultsService(deps) {
         record.searchMatch = matchesQuery;
       }
       deps.updateSvgElementVisibility(record.element);
+      updatedElements.add(record.element);
     });
+
+    if (typeof deps.getTaggedElements === "function") {
+      const taggedElements = deps.getTaggedElements();
+      if (taggedElements && typeof taggedElements.forEach === "function") {
+        taggedElements.forEach((element) => {
+          if (!element || updatedElements.has(element)) return;
+          deps.updateSvgElementVisibility(element);
+        });
+      }
+    }
 
     const summary = renderFilterResults(query);
     deps.updateFilterResultSummary(

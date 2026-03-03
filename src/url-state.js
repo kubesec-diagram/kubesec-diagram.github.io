@@ -12,6 +12,10 @@ window.createUrlStateService = function createUrlStateService(deps) {
       hiddenTags,
       pinnedSlugs: deps.getPinnedSlugs(),
       constraints: deps.getFilterConstraints(),
+      level:
+        typeof deps.getSelectedLevel === "function"
+          ? Math.max(0, Number.parseInt(deps.getSelectedLevel(), 10) || 0)
+          : 0,
     };
   }
 
@@ -23,6 +27,7 @@ window.createUrlStateService = function createUrlStateService(deps) {
       const hideTagsRaw = urlParams.get(deps.filterHideTagsParam);
       const pinsRaw = urlParams.get(deps.pinsParam);
       const constraintsRaw = urlParams.get(deps.constraintParam);
+      const levelRaw = urlParams.get(deps.filterLevelParam);
 
       const hiddenTags = hideTagsRaw
         ? hideTagsRaw
@@ -51,6 +56,8 @@ window.createUrlStateService = function createUrlStateService(deps) {
         hiddenTags,
         pinnedSlugs,
         constraints,
+        level: Math.max(0, Number.parseInt(levelRaw, 10) || 0),
+        hasLevel: levelRaw !== null,
         hasHiddenTags: hideTagsRaw !== null,
       };
     } catch (error) {
@@ -61,6 +68,8 @@ window.createUrlStateService = function createUrlStateService(deps) {
         hiddenTags: [],
         pinnedSlugs: [],
         constraints: [],
+        level: 0,
+        hasLevel: false,
         hasHiddenTags: false,
       };
     }
@@ -84,7 +93,13 @@ window.createUrlStateService = function createUrlStateService(deps) {
       const hiddenTags = filterState.hiddenTags;
       const pinnedSlugs = (filterState.pinnedSlugs || []).filter(Boolean);
       const constraints = (filterState.constraints || []).filter(Boolean);
-      const hasFilterCriteria = query.length > 0 || hiddenTags.length > 0;
+      const level = Math.max(0, Number.parseInt(filterState.level, 10) || 0);
+      const defaultLevel =
+        typeof deps.getDefaultSelectedLevel === "function"
+          ? Math.max(0, Number.parseInt(deps.getDefaultSelectedLevel(), 10) || 0)
+          : 0;
+      const hasNonDefaultLevel = level !== defaultLevel;
+      const hasFilterCriteria = query.length > 0 || hiddenTags.length > 0 || hasNonDefaultLevel;
 
       if (
         !filterState.visible &&
@@ -97,11 +112,13 @@ window.createUrlStateService = function createUrlStateService(deps) {
         url.searchParams.delete(deps.filterHideTagsParam);
         url.searchParams.delete(deps.pinsParam);
         url.searchParams.delete(deps.constraintParam);
+        url.searchParams.delete(deps.filterLevelParam);
       } else {
-        url.searchParams.set(
-          deps.menuVisibleParam,
-          filterState.visible ? "true" : "false",
-        );
+        if (filterState.visible) {
+          url.searchParams.set(deps.menuVisibleParam, "true");
+        } else {
+          url.searchParams.delete(deps.menuVisibleParam);
+        }
 
         if (query.length > 0) {
           url.searchParams.set(deps.filterQueryParam, query);
@@ -125,6 +142,12 @@ window.createUrlStateService = function createUrlStateService(deps) {
           url.searchParams.set(deps.constraintParam, constraints.join(","));
         } else {
           url.searchParams.delete(deps.constraintParam);
+        }
+
+        if (hasNonDefaultLevel) {
+          url.searchParams.set(deps.filterLevelParam, `${level}`);
+        } else {
+          url.searchParams.delete(deps.filterLevelParam);
         }
       }
 
