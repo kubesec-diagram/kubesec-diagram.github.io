@@ -15,6 +15,10 @@ window.createUrlStateService = function createUrlStateService(deps) {
       hiddenTags,
       pinnedSlugs: deps.getPinnedSlugs(),
       constraints: deps.getFilterConstraints(),
+      level:
+        typeof deps.getSelectedLevel === "function"
+          ? Math.max(0, Number.parseInt(deps.getSelectedLevel(), 10) || 0)
+          : 0,
     };
   }
 
@@ -26,6 +30,7 @@ window.createUrlStateService = function createUrlStateService(deps) {
       const hideTagsRaw = urlParams.get(deps.filterHideTagsParam);
       const pinsRaw = urlParams.get(deps.pinsParam);
       const constraintsRaw = urlParams.get(deps.constraintParam);
+      const levelRaw = urlParams.get(deps.filterLevelParam);
 
       const hiddenTags = hideTagsRaw
         ? hideTagsRaw
@@ -54,6 +59,8 @@ window.createUrlStateService = function createUrlStateService(deps) {
         hiddenTags,
         pinnedSlugs,
         constraints,
+        level: Math.max(0, Number.parseInt(levelRaw, 10) || 0),
+        hasLevel: levelRaw !== null,
         hasHiddenTags: hideTagsRaw !== null,
       };
     } catch (error) {
@@ -64,6 +71,8 @@ window.createUrlStateService = function createUrlStateService(deps) {
         hiddenTags: [],
         pinnedSlugs: [],
         constraints: [],
+        level: 0,
+        hasLevel: false,
         hasHiddenTags: false,
       };
     }
@@ -87,7 +96,13 @@ window.createUrlStateService = function createUrlStateService(deps) {
       const hiddenTags = filterState.hiddenTags;
       const pinnedSlugs = (filterState.pinnedSlugs || []).filter(Boolean);
       const constraints = (filterState.constraints || []).filter(Boolean);
-      const hasFilterCriteria = query.length > 0 || hiddenTags.length > 0;
+      const level = Math.max(0, Number.parseInt(filterState.level, 10) || 0);
+      const defaultLevel =
+        typeof deps.getDefaultSelectedLevel === "function"
+          ? Math.max(0, Number.parseInt(deps.getDefaultSelectedLevel(), 10) || 0)
+          : 0;
+      const hasNonDefaultLevel = level !== defaultLevel;
+      const hasFilterCriteria = query.length > 0 || hiddenTags.length > 0 || hasNonDefaultLevel;
 
       if (
         !filterState.visible &&
@@ -100,11 +115,13 @@ window.createUrlStateService = function createUrlStateService(deps) {
         url.searchParams.delete(deps.filterHideTagsParam);
         url.searchParams.delete(deps.pinsParam);
         url.searchParams.delete(deps.constraintParam);
+        url.searchParams.delete(deps.filterLevelParam);
       } else {
-        url.searchParams.set(
-          deps.menuVisibleParam,
-          filterState.visible ? "true" : "false",
-        );
+        if (filterState.visible) {
+          url.searchParams.set(deps.menuVisibleParam, "true");
+        } else {
+          url.searchParams.delete(deps.menuVisibleParam);
+        }
 
         if (query.length > 0) {
           url.searchParams.set(deps.filterQueryParam, query);
@@ -128,6 +145,12 @@ window.createUrlStateService = function createUrlStateService(deps) {
           url.searchParams.set(deps.constraintParam, constraints.join(","));
         } else {
           url.searchParams.delete(deps.constraintParam);
+        }
+
+        if (hasNonDefaultLevel) {
+          url.searchParams.set(deps.filterLevelParam, `${level}`);
+        } else {
+          url.searchParams.delete(deps.filterLevelParam);
         }
       }
 
@@ -282,7 +305,33 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
   }
 
   function getSortedVisibleTags(tags) {
-    return [...new Set((tags || []).filter(Boolean))].sort(compareTagsByFilterOrder);
+    return [...new Set(getNonLevelTags(tags))].sort(compareTagsByFilterOrder);
+  }
+
+  function isLevelTag(tag) {
+    return /^level-\d+$/i.test(`${tag || ""}`.trim());
+  }
+
+  function parseLevelTag(tag) {
+    const match = `${tag || ""}`.trim().toLowerCase().match(/^level-(\d+)$/);
+    if (!match) return null;
+    const parsed = Number.parseInt(match[1], 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function getTagLevel(tags) {
+    let level = 0;
+    (tags || []).forEach((tag) => {
+      const parsed = parseLevelTag(tag);
+      if (Number.isFinite(parsed)) {
+        level = Math.max(level, parsed);
+      }
+    });
+    return level;
+  }
+
+  function getNonLevelTags(tags) {
+    return (tags || []).filter((tag) => tag && !isLevelTag(tag));
   }
 
   function buildTagBadgesHtml(tags) {
@@ -355,7 +404,14 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
 
   function isTagSetVisible(tags) {
     const visibility = deps.getTagVisibility();
-    return (tags || []).every((tag) => visibility.get(tag) !== false);
+    return getNonLevelTags(tags).every((tag) => visibility.get(tag) !== false);
+  }
+
+  function isTagSetWithinSelectedLevel(tags) {
+    const selectedLevelRaw =
+      typeof deps.getSelectedLevel === "function" ? deps.getSelectedLevel() : 0;
+    const selectedLevel = Math.max(0, Number.parseInt(selectedLevelRaw, 10) || 0);
+    return getTagLevel(tags) <= selectedLevel;
   }
 
   function isTagSetDisabledByHiddenGroup(tags) {
@@ -364,7 +420,7 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
 
   function getHiddenDisableTags(tags) {
     const visibility = deps.getTagVisibility();
-    return (tags || []).filter((tag) => {
+    return getNonLevelTags(tags).filter((tag) => {
       const meta = getTagMeta(tag);
       const group = getTagGroupMeta(meta.group || "general");
       return group.disableHelpIfHidden === true && visibility.get(tag) === false;
@@ -377,12 +433,17 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
     getTagMeta,
     getTagGroupMeta,
     compareTagsByFilterOrder,
+    isLevelTag,
+    parseLevelTag,
+    getTagLevel,
+    getNonLevelTags,
     getSortedVisibleTags,
     buildTagBadgesHtml,
     getPrimarySeverityTag,
     applySeverityStyleToElement,
     getSeverityClassForTags,
     isTagSetVisible,
+    isTagSetWithinSelectedLevel,
     isTagSetDisabledByHiddenGroup,
     getHiddenDisableTags,
   };
@@ -390,6 +451,12 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
 
 // ---- ./src/tag-controls.js ----
 window.createTagControlsService = function createTagControlsService(deps) {
+  function getLevelLabel(level, maxLevel) {
+    const normalizedLevel = Math.max(0, Number.parseInt(level, 10) || 0);
+    const normalizedMax = Math.max(0, Number.parseInt(maxLevel, 10) || 0);
+    return normalizedLevel >= normalizedMax ? "max" : `${normalizedLevel}`;
+  }
+
   function applyTagVisibility(tag) {
     const elements = deps.getDiagramTagElements().get(tag);
     if (!elements) return;
@@ -436,9 +503,12 @@ window.createTagControlsService = function createTagControlsService(deps) {
     deps.setDiagramTagElements(nextDiagramTagElements);
 
     const taggedElements = deps.image.querySelectorAll("[data-tags]");
+    let maxDiscoveredLevel = 0;
     taggedElements.forEach((el) => {
       const tags = deps.parseTags(el.getAttribute("data-tags"));
+      maxDiscoveredLevel = Math.max(maxDiscoveredLevel, deps.getTagLevel(tags));
       tags.forEach((tag) => {
+        if (deps.isLevelTag(tag)) return;
         if (!nextDiagramTagElements.has(tag)) {
           nextDiagramTagElements.set(tag, []);
         }
@@ -446,12 +516,90 @@ window.createTagControlsService = function createTagControlsService(deps) {
       });
     });
 
+    const hasInitialSelectedLevel =
+      typeof deps.getHasInitialSelectedLevel === "function"
+        ? deps.getHasInitialSelectedLevel()
+        : false;
+
+    if (typeof deps.setMaxDiagramLevel === "function") {
+      deps.setMaxDiagramLevel(maxDiscoveredLevel);
+    }
+    if (typeof deps.getSelectedLevel === "function" && typeof deps.setSelectedLevel === "function") {
+      const selectedLevel = deps.getSelectedLevel();
+      const parsedSelectedLevel = Number.parseInt(selectedLevel, 10);
+      const fallbackLevel = maxDiscoveredLevel;
+      const initialLevel = Number.isFinite(parsedSelectedLevel) ? parsedSelectedLevel : fallbackLevel;
+      const clampedLevel = Math.max(0, Math.min(maxDiscoveredLevel, initialLevel));
+      if (!hasInitialSelectedLevel && maxDiscoveredLevel > 0) {
+        deps.setSelectedLevel(maxDiscoveredLevel);
+      } else if (clampedLevel !== selectedLevel) {
+        deps.setSelectedLevel(clampedLevel);
+      }
+    }
+
+    if (maxDiscoveredLevel > 0) {
+      const levelWrap = document.createElement("div");
+      levelWrap.className = "level-filter-control";
+
+      const levelHeader = document.createElement("div");
+      levelHeader.className = "level-filter-header";
+
+      const levelTitle = document.createElement("div");
+      levelTitle.className = "tag-group-title";
+      levelTitle.textContent = "Level";
+
+      const levelValue = document.createElement("strong");
+      levelValue.className = "level-filter-value";
+
+      const levelInput = document.createElement("input");
+      levelInput.type = "range";
+      levelInput.className = "level-filter-slider";
+      levelInput.min = "0";
+      levelInput.max = `${maxDiscoveredLevel}`;
+      levelInput.step = "1";
+
+      const selectedLevelRaw =
+        typeof deps.getSelectedLevel === "function" ? deps.getSelectedLevel() : maxDiscoveredLevel;
+      const selectedLevel = Number.parseInt(selectedLevelRaw, 10);
+      const clampedSelectedLevel = Math.max(
+        0,
+        Math.min(maxDiscoveredLevel, Number.isFinite(selectedLevel) ? selectedLevel : maxDiscoveredLevel),
+      );
+      levelInput.value = `${clampedSelectedLevel}`;
+      levelValue.textContent = `Level ${getLevelLabel(clampedSelectedLevel, maxDiscoveredLevel)}`;
+
+      const handleLevelChange = () => {
+        const nextLevel = Math.max(
+          0,
+          Math.min(maxDiscoveredLevel, Number.parseInt(levelInput.value, 10) || 0),
+        );
+        levelValue.textContent = `Level ${getLevelLabel(nextLevel, maxDiscoveredLevel)}`;
+        deps.setSelectedLevel(nextLevel);
+        deps.applyAnnotationFilter();
+        deps.updateURLState();
+      };
+
+      levelInput.addEventListener("input", handleLevelChange);
+      levelInput.addEventListener("change", handleLevelChange);
+
+      levelHeader.appendChild(levelTitle);
+      levelHeader.appendChild(levelValue);
+      levelWrap.appendChild(levelHeader);
+      levelWrap.appendChild(levelInput);
+      deps.filterTagControls.appendChild(levelWrap);
+    }
+
     const discoveredTags = Array.from(nextDiagramTagElements.keys()).sort((a, b) =>
       a.localeCompare(b),
     );
     if (discoveredTags.length === 0) {
-      deps.filterTagControls.innerHTML =
-        '<div class="filter-result-item"><small>No tags found in this diagram.</small></div>';
+      const message = document.createElement("div");
+      message.className = "filter-result-item";
+      message.innerHTML =
+        maxDiscoveredLevel > 0
+          ? "<small>No regular tags found in this diagram.</small>"
+          : "<small>No tags found in this diagram.</small>";
+      deps.filterTagControls.appendChild(message);
       return;
     }
 
@@ -1211,19 +1359,15 @@ window.createViewportService = function createViewportService(deps) {
 
     panIndicatorUp = document.createElement("div");
     panIndicatorUp.className = "pan-indicator pan-indicator-up";
-    panIndicatorUp.textContent = "^";
 
     panIndicatorRight = document.createElement("div");
     panIndicatorRight.className = "pan-indicator pan-indicator-right";
-    panIndicatorRight.textContent = ">";
 
     panIndicatorDown = document.createElement("div");
     panIndicatorDown.className = "pan-indicator pan-indicator-down";
-    panIndicatorDown.textContent = "v";
 
     panIndicatorLeft = document.createElement("div");
     panIndicatorLeft.className = "pan-indicator pan-indicator-left";
-    panIndicatorLeft.textContent = "<";
 
     panIndicatorLayer.appendChild(panIndicatorUp);
     panIndicatorLayer.appendChild(panIndicatorRight);
@@ -2781,15 +2925,28 @@ window.createFilterResultsService = function createFilterResultsService(deps) {
     applyAnnotationFilter();
   }
 
-  function formatHiddenReason(hiddenTags) {
-    const tags = Array.isArray(hiddenTags) ? hiddenTags.filter(Boolean) : [];
-    if (tags.length === 0) {
+  function formatHiddenReason(options = {}) {
+    const hiddenTags = Array.isArray(options.hiddenTags) ? options.hiddenTags.filter(Boolean) : [];
+    const hiddenByLevel = Boolean(options.hiddenByLevel);
+    const recordLevel = Number.isFinite(options.recordLevel) ? options.recordLevel : 0;
+    const selectedLevel = Number.isFinite(options.selectedLevel) ? options.selectedLevel : 0;
+
+    if (hiddenByLevel && hiddenTags.length > 0) {
+      const quoted = hiddenTags.map((tag) => `\"${tag}\"`).join(", ");
+      return `Hidden because tags ${quoted} are filtered out and level-${recordLevel} is above selected level-${selectedLevel}.`;
+    }
+
+    if (hiddenByLevel) {
+      return `Hidden because level-${recordLevel} is above selected level-${selectedLevel}.`;
+    }
+
+    if (hiddenTags.length === 0) {
       return "Hidden because one or more required tags are filtered out.";
     }
-    if (tags.length === 1) {
-      return `Hidden because tag \"${tags[0]}\" is filtered out.`;
+    if (hiddenTags.length === 1) {
+      return `Hidden because tag \"${hiddenTags[0]}\" is filtered out.`;
     }
-    const quoted = tags.map((tag) => `\"${tag}\"`).join(", ");
+    const quoted = hiddenTags.map((tag) => `\"${tag}\"`).join(", ");
     return `Hidden because tags ${quoted} are filtered out.`;
   }
 
@@ -2952,7 +3109,7 @@ window.createFilterResultsService = function createFilterResultsService(deps) {
 
   function createResultItem(record, options = {}) {
     const inactive = Boolean(options.inactive);
-    const hiddenReason = inactive ? formatHiddenReason(options.hiddenTags) : "";
+    const hiddenReason = inactive ? formatHiddenReason(options) : "";
     const item = document.createElement("div");
     item.className = "filter-result-item";
     item._filterRecord = record;
@@ -3083,7 +3240,9 @@ window.createFilterResultsService = function createFilterResultsService(deps) {
       (record) =>
         onlyShowPinned
           ? isRecordPinned(record)
-          : deps.helpMatchesSearch(record, query) && deps.isTagSetVisible(record.tags),
+          : deps.helpMatchesSearch(record, query) &&
+            deps.isTagSetVisible(record.tags) &&
+            deps.isTagSetWithinSelectedLevel(record.tags),
     );
 
     function getEntryTags(entry) {
@@ -3123,10 +3282,16 @@ window.createFilterResultsService = function createFilterResultsService(deps) {
       .filter(Boolean)
       .map((entry) => {
         const hiddenTags = deps.getHiddenDisableTags(entry.record.tags || []);
+        const recordLevel = deps.getTagLevel(entry.record.tags || []);
+        const selectedLevel = deps.getSelectedLevel();
+        const hiddenByLevel = !deps.isTagSetWithinSelectedLevel(entry.record.tags || []);
         return {
           ...entry,
-          inactive: hiddenTags.length > 0,
+          inactive: hiddenTags.length > 0 || hiddenByLevel,
           hiddenTags,
+          hiddenByLevel,
+          selectedLevel,
+          recordLevel,
         };
       })
       .sort((a, b) => {
@@ -3193,6 +3358,7 @@ window.createFilterResultsService = function createFilterResultsService(deps) {
     const onlyShowPinned = deps.getOnlyShowPinned();
     deps.setFilterControlsDisabled(onlyShowPinned);
 
+    const updatedElements = new Set();
     deps.getSvgHelpRecords().forEach((record) => {
       if (onlyShowPinned) {
         record.searchMatch = isRecordPinned(record);
@@ -3201,7 +3367,18 @@ window.createFilterResultsService = function createFilterResultsService(deps) {
         record.searchMatch = matchesQuery;
       }
       deps.updateSvgElementVisibility(record.element);
+      updatedElements.add(record.element);
     });
+
+    if (typeof deps.getTaggedElements === "function") {
+      const taggedElements = deps.getTaggedElements();
+      if (taggedElements && typeof taggedElements.forEach === "function") {
+        taggedElements.forEach((element) => {
+          if (!element || updatedElements.has(element)) return;
+          deps.updateSvgElementVisibility(element);
+        });
+      }
+    }
 
     const summary = renderFilterResults(query);
     deps.updateFilterResultSummary(
@@ -5203,12 +5380,17 @@ window.createSvgHelpService = function createSvgHelpService(deps) {
     const tags = deps.parseTags(element.getAttribute("data-tags"));
     const slug = getElementSlug(element);
     const pinned = slug ? deps.isSlugPinned(slug) : false;
-    const visibleByAllTags = tags.every((tag) => deps.getTagVisibility().get(tag) !== false);
+    const visibleByAllTags = deps.isTagSetVisible
+      ? deps.isTagSetVisible(tags)
+      : tags.every((tag) => deps.getTagVisibility().get(tag) !== false);
     const hiddenByDisabledGroup = deps.isTagSetDisabledByHiddenGroup
       ? deps.isTagSetDisabledByHiddenGroup(tags)
       : false;
+    const hiddenByLevel = deps.isTagSetWithinSelectedLevel
+      ? !deps.isTagSetWithinSelectedLevel(tags)
+      : false;
     const visibleByPinnedConstraint = onlyShowPinned ? pinned : true;
-    const visibleByTags = hiddenByDisabledGroup ? false : pinned || visibleByAllTags;
+    const visibleByTags = hiddenByDisabledGroup || hiddenByLevel ? false : pinned || visibleByAllTags;
     const helpRecord = deps.getSvgHelpRecordByElement().get(element);
     const visibleBySearch = pinned ? true : helpRecord ? helpRecord.searchMatch !== false : true;
     const shouldShow = visibleByPinnedConstraint && visibleByTags && visibleBySearch;
@@ -5396,6 +5578,8 @@ let filterPanelOpen = false;
 let filterPanelOverlayMode = true;
 let pinnedHelpSlugs = new Set();
 let onlyShowPinned = false;
+let selectedLevel = 0;
+let maxDiagramLevel = 0;
 let fitAllMode = false;
 let fitGeometryMode = "cover";
 let pendingCoverSyncAfterFitExit = false;
@@ -5405,6 +5589,7 @@ const FILTER_HIDE_TAGS_PARAM = "filter-hide-tags";
 const FILTER_QUERY_PARAM = "filter-query";
 const FILTER_PINS_PARAM = "pins";
 const FILTER_CONSTRAINT_PARAM = "constraint";
+const FILTER_LEVEL_PARAM = "filter-level";
 const THEME_STORAGE_KEY = "kubesec-theme";
 const FILTER_DOCK_MIN_IMAGE_WIDTH = 1100;
 const FILTER_SEARCH_PLACEHOLDER_DEFAULT = "Search annotations...";
@@ -6110,6 +6295,7 @@ if (typeof window.createTagUtilsService !== "function") {
 const tagUtilsService = window.createTagUtilsService({
   getConfig: () => config,
   getTagVisibility: () => tagVisibility,
+  getSelectedLevel: () => selectedLevel,
 });
 
 if (typeof window.createUserAnnotationPositioningService !== "function") {
@@ -6193,6 +6379,8 @@ const urlStateService = window.createUrlStateService({
   getAnnotationSearchQuery: () => annotationSearchQuery,
   getPinnedSlugs: () => Array.from(pinnedHelpSlugs).sort((a, b) => a.localeCompare(b)),
   getFilterConstraints: () => (onlyShowPinned ? ["pinned"] : []),
+  getSelectedLevel: () => selectedLevel,
+  getDefaultSelectedLevel: () => maxDiagramLevel,
   getUserAnnotations: () => userAnnotations,
   getMaxUserAnnotations: () => (config && config.maxUserAnnotations) || 10,
   menuVisibleParam: MENU_VISIBLE_PARAM,
@@ -6200,6 +6388,7 @@ const urlStateService = window.createUrlStateService({
   filterQueryParam: FILTER_QUERY_PARAM,
   pinsParam: FILTER_PINS_PARAM,
   constraintParam: FILTER_CONSTRAINT_PARAM,
+  filterLevelParam: FILTER_LEVEL_PARAM,
 });
 
 if (typeof window.createTooltipService !== "function") {
@@ -6403,9 +6592,13 @@ const filterResultsService = window.createFilterResultsService({
   normalizeQuery: (query) => helpUtilsService.normalizeQuery(query),
   helpMatchesSearch: (record, query) => helpUtilsService.helpMatchesSearch(record, query),
   isTagSetVisible: (tags) => tagUtilsService.isTagSetVisible(tags),
+  isTagSetWithinSelectedLevel: (tags) =>
+    tagUtilsService.isTagSetWithinSelectedLevel(tags),
   isTagSetDisabledByHiddenGroup: (tags) =>
     tagUtilsService.isTagSetDisabledByHiddenGroup(tags),
   getHiddenDisableTags: (tags) => tagUtilsService.getHiddenDisableTags(tags),
+  getTagLevel: (tags) => tagUtilsService.getTagLevel(tags),
+  getSelectedLevel: () => selectedLevel,
   getSortedVisibleTags: (tags) => tagUtilsService.getSortedVisibleTags(tags),
   compareTagsByFilterOrder: (a, b) => tagUtilsService.compareTagsByFilterOrder(a, b),
   buildTagBadgesHtml: (tags) => tagUtilsService.buildTagBadgesHtml(tags),
@@ -6425,6 +6618,7 @@ const filterResultsService = window.createFilterResultsService({
   goToHelpRecord,
   updateSvgElementVisibility: (element) =>
     svgHelpService.updateSvgElementVisibility(element),
+  getTaggedElements: () => image.querySelectorAll("[data-tags]"),
   updateFilterResultSummary: (helpVisible, helpTotal, query) => {
     filterResultCount.textContent = helpUtilsService.getFilterResultSummary(
       helpVisible,
@@ -6501,8 +6695,11 @@ const svgHelpService = window.createSvgHelpService({
   getOnlyShowPinned: () => onlyShowPinned,
   getTooltipHideDelay: () => (config && config.ui && config.ui.tooltipHideDelay) || 100,
   getTagVisibility: () => tagVisibility,
+  isTagSetVisible: (tags) => tagUtilsService.isTagSetVisible(tags),
   isTagSetDisabledByHiddenGroup: (tags) =>
     tagUtilsService.isTagSetDisabledByHiddenGroup(tags),
+  isTagSetWithinSelectedLevel: (tags) =>
+    tagUtilsService.isTagSetWithinSelectedLevel(tags),
   getHiddenDisableTags: (tags) => tagUtilsService.getHiddenDisableTags(tags),
   getSvgHelpRecordByElement: () => svgHelpRecordByElement,
 });
@@ -6533,12 +6730,14 @@ const svgLoaderService = window.createSvgLoaderService({
 const initialFilterState = urlStateService.parseFilterStateFromURL();
 const initialHiddenTags = new Set(initialFilterState.hiddenTags || []);
 const hasInitialHiddenTags = Boolean(initialFilterState.hasHiddenTags);
+const hasInitialSelectedLevel = Boolean(initialFilterState.hasLevel);
 annotationSearchQuery = initialFilterState.query || "";
 filterPanelOpen = Boolean(initialFilterState.open);
 pinnedHelpSlugs = new Set(initialFilterState.pinnedSlugs || []);
 onlyShowPinned = Array.isArray(initialFilterState.constraints)
   ? initialFilterState.constraints.includes("pinned")
   : false;
+selectedLevel = Math.max(0, Number.parseInt(initialFilterState.level, 10) || 0);
 filterSearchInput.value = annotationSearchQuery;
 
 if (typeof window.createTagControlsService !== "function") {
@@ -6550,6 +6749,8 @@ const tagControlsService = window.createTagControlsService({
   image,
   filterTagControls,
   parseTags: (tagValue) => tagUtilsService.parseTags(tagValue),
+  isLevelTag: (tag) => tagUtilsService.isLevelTag(tag),
+  getTagLevel: (tags) => tagUtilsService.getTagLevel(tags),
   getTagMeta: (tag) => tagUtilsService.getTagMeta(tag),
   getTagGroupMeta: (groupId) => tagUtilsService.getTagGroupMeta(groupId),
   getTagVisibility: () => tagVisibility,
@@ -6559,6 +6760,17 @@ const tagControlsService = window.createTagControlsService({
   },
   getInitialHiddenTags: () => initialHiddenTags,
   getHasInitialHiddenTags: () => hasInitialHiddenTags,
+  getHasInitialSelectedLevel: () => hasInitialSelectedLevel,
+  getSelectedLevel: () => selectedLevel,
+  setSelectedLevel: (value) => {
+    selectedLevel = Math.max(0, Number.parseInt(value, 10) || 0);
+  },
+  setMaxDiagramLevel: (value) => {
+    maxDiagramLevel = Math.max(0, Number.parseInt(value, 10) || 0);
+    if (selectedLevel > maxDiagramLevel) {
+      selectedLevel = maxDiagramLevel;
+    }
+  },
   updateSvgElementVisibility: (element) =>
     svgHelpService.updateSvgElementVisibility(element),
   applyAnnotationFilter: () => filterResultsService.applyAnnotationFilter(),

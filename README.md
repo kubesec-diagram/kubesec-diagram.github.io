@@ -17,6 +17,9 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 
 ## Changelog
 
+* v11 (2026-03-04)
+  * Adding levels
+  * Minor fixes and tweaks
 * v10 (2026-02-22)
   * Added gateway-api as an alternative to ingress
   * More info about properties of a Namespace
