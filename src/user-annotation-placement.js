@@ -113,8 +113,18 @@ window.createUserAnnotationPlacementService =
           currentStyle && currentStyle.annotationType === "area";
 
         const bounds = deps.getImageBounds(true);
-        let x = (e.clientX - bounds.left) / bounds.width;
-        let y = (e.clientY - bounds.top) / bounds.height;
+        const imageEl =
+          typeof deps.getImageElement === "function" ? deps.getImageElement() : null;
+        const imageRect =
+          imageEl && typeof imageEl.getBoundingClientRect === "function"
+            ? imageEl.getBoundingClientRect()
+            : null;
+        const rectLeft = imageRect ? imageRect.left : bounds.left;
+        const rectTop = imageRect ? imageRect.top : bounds.top;
+        const rectWidth = imageRect ? imageRect.width : bounds.width;
+        const rectHeight = imageRect ? imageRect.height : bounds.height;
+        let x = (e.clientX - rectLeft) / rectWidth;
+        let y = (e.clientY - rectTop) / rectHeight;
 
         if (currentIsAreaAnnotation && currentStyle.defaultSize) {
           const pixelWidth = currentStyle.defaultSize.width;

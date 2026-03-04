@@ -1340,6 +1340,7 @@ if (typeof window.createUserAnnotationDragService !== "function") {
 
 const userAnnotationDragService = window.createUserAnnotationDragService({
   wrapper,
+  getImageElement: () => image,
   getEditModeEnabled: () => editModeEnabled,
   getUserAnnotations: () => userAnnotations,
   getUserAnnotationStyle: (type) =>
@@ -1398,11 +1399,13 @@ if (typeof window.createUserAnnotationPlacementService !== "function") {
 
 const userAnnotationPlacementService = window.createUserAnnotationPlacementService({
   getWrapper: () => wrapper,
+  getImageElement: () => image,
   getUserAnnotations: () => userAnnotations,
   getUserAnnotationStyle: (type) =>
     config && config.userAnnotationTypes ? config.userAnnotationTypes[type] : null,
   getImageBounds: (forceRefresh = false) =>
     viewportService.getImageBounds(forceRefresh),
+  getCurrentZoom: () => currentZoom,
   getMaxUserAnnotations: () => (config && config.maxUserAnnotations) || 10,
   clearInlineForm: () => userAnnotationFormsService.clearInlineForm(),
   encodeUserAnnotationsToURL: () => urlStateService.encodeUserAnnotationsToURL(),

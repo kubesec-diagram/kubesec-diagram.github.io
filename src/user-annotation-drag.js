@@ -1,6 +1,37 @@
 window.createUserAnnotationDragService = function createUserAnnotationDragService(
   deps,
 ) {
+  function getImageFrameInWrapper() {
+    const wrapperBounds = deps.wrapper.getBoundingClientRect();
+    const imageBounds = deps.getImageBounds(true);
+
+    let left = imageBounds.left - wrapperBounds.left;
+    let top = imageBounds.top - wrapperBounds.top;
+    let width = imageBounds.width;
+    let height = imageBounds.height;
+
+    const imageEl =
+      typeof deps.getImageElement === "function" ? deps.getImageElement() : null;
+    if (imageEl && typeof imageEl.getBoundingClientRect === "function") {
+      const imageRect = imageEl.getBoundingClientRect();
+      if (imageRect && imageRect.width > 0 && imageRect.height > 0) {
+        left = imageRect.left - wrapperBounds.left;
+        top = imageRect.top - wrapperBounds.top;
+        width = imageRect.width;
+        height = imageRect.height;
+      }
+    }
+
+    return {
+      left,
+      top,
+      width: Math.max(1, width),
+      height: Math.max(1, height),
+      right: left + Math.max(1, width),
+      bottom: top + Math.max(1, height),
+    };
+  }
+
   function updateUserAnnotationDragState() {
     if (deps.getEditModeEnabled()) {
       const allTooltips = document.querySelectorAll(".tooltip-box");
@@ -99,16 +130,15 @@ window.createUserAnnotationDragService = function createUserAnnotationDragServic
       let newLeft = startLeft + deltaX;
       let newTop = startTop + deltaY;
 
-      const imageBounds = deps.getImageBounds(true);
-      const wrapperBounds = deps.wrapper.getBoundingClientRect();
+      const imageFrame = getImageFrameInWrapper();
 
       const halfWidth = elementWidth / 2;
       const halfHeight = elementHeight / 2;
 
-      const imageLeftInWrapper = imageBounds.left - wrapperBounds.left;
-      const imageTopInWrapper = imageBounds.top - wrapperBounds.top;
-      const imageRightInWrapper = imageLeftInWrapper + imageBounds.width;
-      const imageBottomInWrapper = imageTopInWrapper + imageBounds.height;
+      const imageLeftInWrapper = imageFrame.left;
+      const imageTopInWrapper = imageFrame.top;
+      const imageRightInWrapper = imageFrame.right;
+      const imageBottomInWrapper = imageFrame.bottom;
 
       const minLeft = imageLeftInWrapper + halfWidth;
       const minTop = imageTopInWrapper + halfHeight;
@@ -131,14 +161,12 @@ window.createUserAnnotationDragService = function createUserAnnotationDragServic
       wrapperEl.style.zIndex = "15";
       marker.style.opacity = "";
 
-      const bounds = deps.getImageBounds(true);
-      const rect = wrapperEl.getBoundingClientRect();
+      const imageFrame = getImageFrameInWrapper();
+      const centerX = Number.parseFloat(wrapperEl.style.left) || 0;
+      const centerY = Number.parseFloat(wrapperEl.style.top) || 0;
 
-      const centerX = rect.left + rect.width / 2 - bounds.left;
-      const centerY = rect.top + rect.height / 2 - bounds.top;
-
-      const newX = centerX / bounds.width;
-      const newY = centerY / bounds.height;
+      const newX = (centerX - imageFrame.left) / imageFrame.width;
+      const newY = (centerY - imageFrame.top) / imageFrame.height;
 
       if (newX >= 0 && newX <= 1 && newY >= 0 && newY <= 1) {
         const userAnnotations = deps.getUserAnnotations();
@@ -216,13 +244,12 @@ window.createUserAnnotationDragService = function createUserAnnotationDragServic
       let newLeft = startLeft + deltaX;
       let newTop = startTop + deltaY;
 
-      const imageBounds = deps.getImageBounds(true);
-      const wrapperBounds = deps.wrapper.getBoundingClientRect();
+      const imageFrame = getImageFrameInWrapper();
 
-      const imageLeftInWrapper = imageBounds.left - wrapperBounds.left;
-      const imageTopInWrapper = imageBounds.top - wrapperBounds.top;
-      const imageRightInWrapper = imageLeftInWrapper + imageBounds.width;
-      const imageBottomInWrapper = imageTopInWrapper + imageBounds.height;
+      const imageLeftInWrapper = imageFrame.left;
+      const imageTopInWrapper = imageFrame.top;
+      const imageRightInWrapper = imageFrame.right;
+      const imageBottomInWrapper = imageFrame.bottom;
 
       const minLeft = imageLeftInWrapper;
       const minTop = imageTopInWrapper;
@@ -245,11 +272,12 @@ window.createUserAnnotationDragService = function createUserAnnotationDragServic
       wrapperEl.style.zIndex = "5";
       areaElement.style.opacity = "";
 
-      const bounds = deps.getImageBounds(true);
-      const rect = wrapperEl.getBoundingClientRect();
+      const imageFrame = getImageFrameInWrapper();
+      const newLeft = Number.parseFloat(wrapperEl.style.left) || 0;
+      const newTop = Number.parseFloat(wrapperEl.style.top) || 0;
 
-      const newX = (rect.left - bounds.left) / bounds.width;
-      const newY = (rect.top - bounds.top) / bounds.height;
+      const newX = (newLeft - imageFrame.left) / imageFrame.width;
+      const newY = (newTop - imageFrame.top) / imageFrame.height;
 
       if (newX >= 0 && newX <= 1 && newY >= 0 && newY <= 1) {
         const userAnnotations = deps.getUserAnnotations();
@@ -339,10 +367,9 @@ window.createUserAnnotationDragService = function createUserAnnotationDragServic
         newTop = startTop + deltaY;
       }
 
-      const imageBounds = deps.getImageBounds(true);
-      const wrapperBounds = deps.wrapper.getBoundingClientRect();
-      const maxScreenWidth = imageBounds.width * 0.8;
-      const maxScreenHeight = imageBounds.height * 0.8;
+      const imageFrame = getImageFrameInWrapper();
+      const maxScreenWidth = imageFrame.width * 0.8;
+      const maxScreenHeight = imageFrame.height * 0.8;
 
       const effectiveMaxWidth = Math.min(style.maxSize.width, maxScreenWidth);
       const effectiveMaxHeight = Math.min(style.maxSize.height, maxScreenHeight);
@@ -356,10 +383,10 @@ window.createUserAnnotationDragService = function createUserAnnotationDragServic
         Math.min(effectiveMaxHeight, newHeight),
       );
 
-      const imageLeft = imageBounds.left - wrapperBounds.left;
-      const imageTop = imageBounds.top - wrapperBounds.top;
-      const imageRight = imageLeft + imageBounds.width;
-      const imageBottom = imageTop + imageBounds.height;
+      const imageLeft = imageFrame.left;
+      const imageTop = imageFrame.top;
+      const imageRight = imageFrame.right;
+      const imageBottom = imageFrame.bottom;
 
       if (position.includes("e")) {
         const maxWidthFromPosition = imageRight - startLeft;
@@ -399,20 +426,20 @@ window.createUserAnnotationDragService = function createUserAnnotationDragServic
 
       isResizing = false;
 
-      const imageBounds = deps.getImageBounds(true);
+      const imageFrame = getImageFrameInWrapper();
       const pixelWidth = Number.parseInt(areaElement.style.width, 10);
       const pixelHeight = Number.parseInt(areaElement.style.height, 10);
 
       const userAnnotations = deps.getUserAnnotations();
-      userAnnotations[index].widthRel = pixelWidth / imageBounds.width;
-      userAnnotations[index].heightRel = pixelHeight / imageBounds.height;
+      userAnnotations[index].widthRel = pixelWidth / imageFrame.width;
+      userAnnotations[index].heightRel = pixelHeight / imageFrame.height;
 
       const wrapperEl = areaElement.parentElement;
-      const bounds = deps.getImageBounds(true);
-      const rect = wrapperEl.getBoundingClientRect();
+      const newLeft = Number.parseFloat(wrapperEl.style.left) || 0;
+      const newTop = Number.parseFloat(wrapperEl.style.top) || 0;
 
-      const newX = (rect.left - bounds.left) / bounds.width;
-      const newY = (rect.top - bounds.top) / bounds.height;
+      const newX = (newLeft - imageFrame.left) / imageFrame.width;
+      const newY = (newTop - imageFrame.top) / imageFrame.height;
 
       if (newX >= 0 && newX <= 1 && newY >= 0 && newY <= 1) {
         userAnnotations[index].x = newX;
