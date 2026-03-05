@@ -232,7 +232,8 @@ window.createSvgHelpService = function createSvgHelpService(deps) {
     const hiddenByLevel = deps.isTagSetWithinSelectedLevel
       ? !deps.isTagSetWithinSelectedLevel(tags)
       : false;
-    const visibleByPinnedConstraint = onlyShowPinned ? pinned : true;
+    const constrainByPinned = onlyShowPinned && slug.length > 0;
+    const visibleByPinnedConstraint = constrainByPinned ? pinned : true;
     const visibleByTags = hiddenByDisabledGroup || hiddenByLevel ? false : pinned || visibleByAllTags;
     const helpRecord = deps.getSvgHelpRecordByElement().get(element);
     const visibleBySearch = pinned ? true : helpRecord ? helpRecord.searchMatch !== false : true;

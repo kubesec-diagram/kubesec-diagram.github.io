@@ -475,7 +475,9 @@ window.createFilterResultsService = function createFilterResultsService(deps) {
     const updatedElements = new Set();
     deps.getSvgHelpRecords().forEach((record) => {
       if (onlyShowPinned) {
-        record.searchMatch = isRecordPinned(record);
+        const recordSlug = getRecordSlug(record);
+        const constrainByPinned = recordSlug.length > 0;
+        record.searchMatch = constrainByPinned ? isRecordPinned(record) : true;
       } else {
         const matchesQuery = deps.helpMatchesSearch(record, query);
         record.searchMatch = matchesQuery;

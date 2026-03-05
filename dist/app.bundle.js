@@ -424,6 +424,10 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
     return "severity-default";
   }
 
+  function hasPriorityTag(tags) {
+    return (tags || []).some((tag) => /^pri-\d+$/i.test(`${tag || ""}`.trim()));
+  }
+
   function isTagSetVisible(tags) {
     const visibility = deps.getTagVisibility();
     return getNonLevelTags(tags).every((tag) => visibility.get(tag) !== false);
@@ -466,6 +470,7 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
     getPrimarySeverityTag,
     applySeverityStyleToElement,
     getSeverityClassForTags,
+    hasPriorityTag,
     isTagSetVisible,
     isTagSetWithinSelectedLevel,
     isTagSetDisabledByHiddenGroup,
@@ -3390,7 +3395,9 @@ window.createFilterResultsService = function createFilterResultsService(deps) {
     const updatedElements = new Set();
     deps.getSvgHelpRecords().forEach((record) => {
       if (onlyShowPinned) {
-        record.searchMatch = isRecordPinned(record);
+        const recordSlug = getRecordSlug(record);
+        const constrainByPinned = recordSlug.length > 0;
+        record.searchMatch = constrainByPinned ? isRecordPinned(record) : true;
       } else {
         const matchesQuery = deps.helpMatchesSearch(record, query);
         record.searchMatch = matchesQuery;
@@ -5470,7 +5477,8 @@ window.createSvgHelpService = function createSvgHelpService(deps) {
     const hiddenByLevel = deps.isTagSetWithinSelectedLevel
       ? !deps.isTagSetWithinSelectedLevel(tags)
       : false;
-    const visibleByPinnedConstraint = onlyShowPinned ? pinned : true;
+    const constrainByPinned = onlyShowPinned && slug.length > 0;
+    const visibleByPinnedConstraint = constrainByPinned ? pinned : true;
     const visibleByTags = hiddenByDisabledGroup || hiddenByLevel ? false : pinned || visibleByAllTags;
     const helpRecord = deps.getSvgHelpRecordByElement().get(element);
     const visibleBySearch = pinned ? true : helpRecord ? helpRecord.searchMatch !== false : true;
@@ -6677,9 +6685,11 @@ const filterResultsService = window.createFilterResultsService({
     tagUtilsService.isTagSetWithinSelectedLevel(tags),
   isTagSetDisabledByHiddenGroup: (tags) =>
     tagUtilsService.isTagSetDisabledByHiddenGroup(tags),
+  hasPriorityTag: (tags) => tagUtilsService.hasPriorityTag(tags),
   getHiddenDisableTags: (tags) => tagUtilsService.getHiddenDisableTags(tags),
   getTagLevel: (tags) => tagUtilsService.getTagLevel(tags),
   getSelectedLevel: () => selectedLevel,
+  hasPriorityTag: (tags) => tagUtilsService.hasPriorityTag(tags),
   getSortedVisibleTags: (tags) => tagUtilsService.getSortedVisibleTags(tags),
   compareTagsByFilterOrder: (a, b) => tagUtilsService.compareTagsByFilterOrder(a, b),
   buildTagBadgesHtml: (tags) => tagUtilsService.buildTagBadgesHtml(tags),

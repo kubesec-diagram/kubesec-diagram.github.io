@@ -1094,9 +1094,11 @@ const filterResultsService = window.createFilterResultsService({
     tagUtilsService.isTagSetWithinSelectedLevel(tags),
   isTagSetDisabledByHiddenGroup: (tags) =>
     tagUtilsService.isTagSetDisabledByHiddenGroup(tags),
+  hasPriorityTag: (tags) => tagUtilsService.hasPriorityTag(tags),
   getHiddenDisableTags: (tags) => tagUtilsService.getHiddenDisableTags(tags),
   getTagLevel: (tags) => tagUtilsService.getTagLevel(tags),
   getSelectedLevel: () => selectedLevel,
+  hasPriorityTag: (tags) => tagUtilsService.hasPriorityTag(tags),
   getSortedVisibleTags: (tags) => tagUtilsService.getSortedVisibleTags(tags),
   compareTagsByFilterOrder: (a, b) => tagUtilsService.compareTagsByFilterOrder(a, b),
   buildTagBadgesHtml: (tags) => tagUtilsService.buildTagBadgesHtml(tags),

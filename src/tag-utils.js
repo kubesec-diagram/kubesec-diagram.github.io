@@ -180,6 +180,10 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
     return "severity-default";
   }
 
+  function hasPriorityTag(tags) {
+    return (tags || []).some((tag) => /^pri-\d+$/i.test(`${tag || ""}`.trim()));
+  }
+
   function isTagSetVisible(tags) {
     const visibility = deps.getTagVisibility();
     return getNonLevelTags(tags).every((tag) => visibility.get(tag) !== false);
@@ -222,6 +226,7 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
     getPrimarySeverityTag,
     applySeverityStyleToElement,
     getSeverityClassForTags,
+    hasPriorityTag,
     isTagSetVisible,
     isTagSetWithinSelectedLevel,
     isTagSetDisabledByHiddenGroup,
