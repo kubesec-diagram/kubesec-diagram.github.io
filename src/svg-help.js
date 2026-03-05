@@ -1,4 +1,18 @@
 window.createSvgHelpService = function createSvgHelpService(deps) {
+  function applyCssTagClasses(element, tags) {
+    if (!element || !Array.isArray(tags)) return;
+
+    Array.from(element.classList)
+      .filter((className) => className.startsWith("custom-"))
+      .forEach((className) => element.classList.remove(className));
+
+    const customClasses =
+      typeof deps.getCustomCssClassesForTags === "function"
+        ? deps.getCustomCssClassesForTags(tags)
+        : [];
+    customClasses.forEach((className) => element.classList.add(className));
+  }
+
   function getElementSlug(targetEl) {
     return `${targetEl.getAttribute("data-slug") || ""}`.trim();
   }
@@ -99,6 +113,7 @@ window.createSvgHelpService = function createSvgHelpService(deps) {
       const tooltip = document.createElement("div");
       const slug = getElementSlug(targetEl);
       const tags = deps.parseTags(targetEl.getAttribute("data-tags"));
+      applyCssTagClasses(targetEl, tags);
       const tooltipTags = deps.buildTagBadgesHtml(tags);
       const pinActionHtml = slug
         ? '<button type="button" class="tooltip-pin-btn" data-role="tooltip-pin" aria-pressed="false" title="Pin">📌 Pin</button>'

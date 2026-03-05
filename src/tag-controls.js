@@ -54,9 +54,14 @@ window.createTagControlsService = function createTagControlsService(deps) {
     let maxDiscoveredLevel = 0;
     taggedElements.forEach((el) => {
       const tags = deps.parseTags(el.getAttribute("data-tags"));
+      if (typeof deps.applyCssTagClassesToElement === "function") {
+        deps.applyCssTagClassesToElement(el, tags);
+      }
       maxDiscoveredLevel = Math.max(maxDiscoveredLevel, deps.getTagLevel(tags));
       tags.forEach((tag) => {
-        if (deps.isLevelTag(tag)) return;
+        if (deps.isLevelTag(tag) || (typeof deps.isCssTag === "function" && deps.isCssTag(tag))) {
+          return;
+        }
         if (!nextDiagramTagElements.has(tag)) {
           nextDiagramTagElements.set(tag, []);
         }

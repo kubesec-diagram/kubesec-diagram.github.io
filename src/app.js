@@ -1180,6 +1180,7 @@ const svgHelpService = window.createSvgHelpService({
   parseTags: (tagValue) => tagUtilsService.parseTags(tagValue),
   parseHelpContent: (rawText) => helpUtilsService.parseHelpContent(rawText),
   buildTagBadgesHtml: (tags) => tagUtilsService.buildTagBadgesHtml(tags),
+  getCustomCssClassesForTags: (tags) => tagUtilsService.getCustomCssClassesForTags(tags),
   getSeverityClassForTags: (tags) => tagUtilsService.getSeverityClassForTags(tags),
   applySeverityStyleToElement: (element, tags) =>
     tagUtilsService.applySeverityStyleToElement(element, tags),
@@ -1248,7 +1249,16 @@ const tagControlsService = window.createTagControlsService({
   filterTagControls,
   parseTags: (tagValue) => tagUtilsService.parseTags(tagValue),
   isLevelTag: (tag) => tagUtilsService.isLevelTag(tag),
+  isCssTag: (tag) => tagUtilsService.isCssTag(tag),
   getTagLevel: (tags) => tagUtilsService.getTagLevel(tags),
+  applyCssTagClassesToElement: (element, tags) => {
+    Array.from(element.classList)
+      .filter((className) => className.startsWith("custom-"))
+      .forEach((className) => element.classList.remove(className));
+    tagUtilsService.getCustomCssClassesForTags(tags).forEach((className) => {
+      element.classList.add(className);
+    });
+  },
   getTagMeta: (tag) => tagUtilsService.getTagMeta(tag),
   getTagGroupMeta: (groupId) => tagUtilsService.getTagGroupMeta(groupId),
   getTagVisibility: () => tagVisibility,

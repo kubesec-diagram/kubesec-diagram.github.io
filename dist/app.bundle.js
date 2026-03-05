@@ -312,6 +312,10 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
     return /^level-\d+$/i.test(`${tag || ""}`.trim());
   }
 
+  function isCssTag(tag) {
+    return /^css-[a-z0-9-]+$/i.test(`${tag || ""}`.trim());
+  }
+
   function parseLevelTag(tag) {
     const match = `${tag || ""}`.trim().toLowerCase().match(/^level-(\d+)$/);
     if (!match) return null;
@@ -331,7 +335,25 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
   }
 
   function getNonLevelTags(tags) {
-    return (tags || []).filter((tag) => tag && !isLevelTag(tag));
+    return (tags || []).filter((tag) => tag && !isLevelTag(tag) && !isCssTag(tag));
+  }
+
+  function getCustomCssClassesForTags(tags) {
+    const classes = new Set();
+    (tags || []).forEach((rawTag) => {
+      const tag = `${rawTag || ""}`.trim().toLowerCase();
+      if (!tag) return;
+
+      if (isCssTag(tag)) {
+        classes.add(`custom-${tag.slice(4)}`);
+      }
+
+      const priMatch = tag.match(/^pri-(\d+)$/);
+      if (priMatch) {
+        classes.add(`custom-pri-${priMatch[1]}`);
+      }
+    });
+    return Array.from(classes);
   }
 
   function buildTagBadgesHtml(tags) {
@@ -434,9 +456,11 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
     getTagGroupMeta,
     compareTagsByFilterOrder,
     isLevelTag,
+    isCssTag,
     parseLevelTag,
     getTagLevel,
     getNonLevelTags,
+    getCustomCssClassesForTags,
     getSortedVisibleTags,
     buildTagBadgesHtml,
     getPrimarySeverityTag,
@@ -506,9 +530,14 @@ window.createTagControlsService = function createTagControlsService(deps) {
     let maxDiscoveredLevel = 0;
     taggedElements.forEach((el) => {
       const tags = deps.parseTags(el.getAttribute("data-tags"));
+      if (typeof deps.applyCssTagClassesToElement === "function") {
+        deps.applyCssTagClassesToElement(el, tags);
+      }
       maxDiscoveredLevel = Math.max(maxDiscoveredLevel, deps.getTagLevel(tags));
       tags.forEach((tag) => {
-        if (deps.isLevelTag(tag)) return;
+        if (deps.isLevelTag(tag) || (typeof deps.isCssTag === "function" && deps.isCssTag(tag))) {
+          return;
+        }
         if (!nextDiagramTagElements.has(tag)) {
           nextDiagramTagElements.set(tag, []);
         }
@@ -5208,6 +5237,20 @@ window.createAppLifecycleService = function createAppLifecycleService(deps) {
 
 // ---- ./src/svg-help.js ----
 window.createSvgHelpService = function createSvgHelpService(deps) {
+  function applyCssTagClasses(element, tags) {
+    if (!element || !Array.isArray(tags)) return;
+
+    Array.from(element.classList)
+      .filter((className) => className.startsWith("custom-"))
+      .forEach((className) => element.classList.remove(className));
+
+    const customClasses =
+      typeof deps.getCustomCssClassesForTags === "function"
+        ? deps.getCustomCssClassesForTags(tags)
+        : [];
+    customClasses.forEach((className) => element.classList.add(className));
+  }
+
   function getElementSlug(targetEl) {
     return `${targetEl.getAttribute("data-slug") || ""}`.trim();
   }
@@ -5308,6 +5351,7 @@ window.createSvgHelpService = function createSvgHelpService(deps) {
       const tooltip = document.createElement("div");
       const slug = getElementSlug(targetEl);
       const tags = deps.parseTags(targetEl.getAttribute("data-tags"));
+      applyCssTagClasses(targetEl, tags);
       const tooltipTags = deps.buildTagBadgesHtml(tags);
       const pinActionHtml = slug
         ? '<button type="button" class="tooltip-pin-btn" data-role="tooltip-pin" aria-pressed="false" title="Pin">📌 Pin</button>'
@@ -6719,6 +6763,7 @@ const svgHelpService = window.createSvgHelpService({
   parseTags: (tagValue) => tagUtilsService.parseTags(tagValue),
   parseHelpContent: (rawText) => helpUtilsService.parseHelpContent(rawText),
   buildTagBadgesHtml: (tags) => tagUtilsService.buildTagBadgesHtml(tags),
+  getCustomCssClassesForTags: (tags) => tagUtilsService.getCustomCssClassesForTags(tags),
   getSeverityClassForTags: (tags) => tagUtilsService.getSeverityClassForTags(tags),
   applySeverityStyleToElement: (element, tags) =>
     tagUtilsService.applySeverityStyleToElement(element, tags),
@@ -6787,7 +6832,16 @@ const tagControlsService = window.createTagControlsService({
   filterTagControls,
   parseTags: (tagValue) => tagUtilsService.parseTags(tagValue),
   isLevelTag: (tag) => tagUtilsService.isLevelTag(tag),
+  isCssTag: (tag) => tagUtilsService.isCssTag(tag),
   getTagLevel: (tags) => tagUtilsService.getTagLevel(tags),
+  applyCssTagClassesToElement: (element, tags) => {
+    Array.from(element.classList)
+      .filter((className) => className.startsWith("custom-"))
+      .forEach((className) => element.classList.remove(className));
+    tagUtilsService.getCustomCssClassesForTags(tags).forEach((className) => {
+      element.classList.add(className);
+    });
+  },
   getTagMeta: (tag) => tagUtilsService.getTagMeta(tag),
   getTagGroupMeta: (groupId) => tagUtilsService.getTagGroupMeta(groupId),
   getTagVisibility: () => tagVisibility,

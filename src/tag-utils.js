@@ -68,6 +68,10 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
     return /^level-\d+$/i.test(`${tag || ""}`.trim());
   }
 
+  function isCssTag(tag) {
+    return /^css-[a-z0-9-]+$/i.test(`${tag || ""}`.trim());
+  }
+
   function parseLevelTag(tag) {
     const match = `${tag || ""}`.trim().toLowerCase().match(/^level-(\d+)$/);
     if (!match) return null;
@@ -87,7 +91,25 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
   }
 
   function getNonLevelTags(tags) {
-    return (tags || []).filter((tag) => tag && !isLevelTag(tag));
+    return (tags || []).filter((tag) => tag && !isLevelTag(tag) && !isCssTag(tag));
+  }
+
+  function getCustomCssClassesForTags(tags) {
+    const classes = new Set();
+    (tags || []).forEach((rawTag) => {
+      const tag = `${rawTag || ""}`.trim().toLowerCase();
+      if (!tag) return;
+
+      if (isCssTag(tag)) {
+        classes.add(`custom-${tag.slice(4)}`);
+      }
+
+      const priMatch = tag.match(/^pri-(\d+)$/);
+      if (priMatch) {
+        classes.add(`custom-pri-${priMatch[1]}`);
+      }
+    });
+    return Array.from(classes);
   }
 
   function buildTagBadgesHtml(tags) {
@@ -190,9 +212,11 @@ window.createTagUtilsService = function createTagUtilsService(deps) {
     getTagGroupMeta,
     compareTagsByFilterOrder,
     isLevelTag,
+    isCssTag,
     parseLevelTag,
     getTagLevel,
     getNonLevelTags,
+    getCustomCssClassesForTags,
     getSortedVisibleTags,
     buildTagBadgesHtml,
     getPrimarySeverityTag,
