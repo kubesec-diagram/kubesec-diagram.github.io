@@ -11,6 +11,10 @@ The drawing is most likely an overkill. It is not ment as a "solution" or design
 It's also quite busy, with a ton of elements. It's not ment to "explain" everything, but something you can sit down with and browse around and maybe learn something new.
 Also, it is on-prem... For non on-prem, it might not be that relevant.
 
+> [!NOTE]
+> **How AI is used in this project**
+> AI is used as a development aid, not as an author of the entire project. The diagram itself is 100% human-made, and much of the explanatory content is written by humans. The interactive interface was generated with AI assistance under close human supervision, with final decisions and quality control performed by a human.
+
 ## Where does it come from?
 
 It is made for the purpose stated above inside Telenor Norway. It doesn't reflect any internal designs, architecture or even pattern. The diagram was made for discussion, but ended up being a good cheatsheet in general. So it's released so other companies or people might use it as well.
