@@ -21,6 +21,14 @@ It is made for the purpose stated above inside Telenor Norway. It doesn't reflec
 
 ## Changelog
 
+* v2026.09.3
+  * Cleanup service-owner and operator access
+  * Minor cleanups on the left side of the diagram
+  * Some info about image building
+  * Some additional info-bokses
+  * Cleanup about VirtualMachine
+  * Adding non-cloudnative / traditional to the drawing
+  * Adding some details and tweaking some visuals
 * v2026.09.2
   * Better sharing of focus areas (zoom is in the url)
   * Fullscreen mode is enabled if zoomed out (also in url)
