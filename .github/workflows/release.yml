@@ -2,9 +2,10 @@ name: release
 
 # A new top entry "* vYYYY.MM.N" under "## Changelog" in README.md is a new
 # version (scripts/changelog.mjs). On push to main, when its tag does not
-# exist yet: check and build, commit package.json and
-# config/version.generated.js ([skip ci]), then tag v<version> and a GitHub
-# release with the entry's notes. Not published to npm: consumers use the tag
+# exist yet: check, render kubesec-diagram.svg and build, commit
+# package.json, config/version.generated.js and the rendered SVG ([skip ci]),
+# then tag v<version> and a GitHub release with the entry's notes. Commits to
+# main are serialized with deploy.yml (concurrency group main-commits). Not published to npm: consumers use the tag
 # (github:kubesec-diagram/kubesec-diagram.github.io#v<version>).
 on:
   push:
@@ -35,6 +36,9 @@ jobs:
     needs: changelog
     if: needs.changelog.outputs.release == 'true'
     runs-on: ubuntu-latest
+    concurrency:
+      group: main-commits
+      cancel-in-progress: false
     timeout-minutes: 10
     permissions:
       contents: write # version commit, tag and GitHub release
@@ -51,19 +55,22 @@ jobs:
       - run: npm ci
       - run: npm run engine:latest
       - run: npm run check
+      - run: npx playwright install --with-deps chromium
+      - run: npm run render
       - run: npm run build
       # The tag points at a commit whose package.json and version module say
-      # this version.
+      # this version, with the SVG rendered from its source.
       - name: Commit the version
         run: |
           npm version "$VERSION" --no-git-tag-version --allow-same-version
-          git add package.json package-lock.json config/version.generated.js
+          git add package.json package-lock.json config/version.generated.js kubesec-diagram.svg
           if git diff --cached --quiet; then
             echo "already at $TAG"
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git commit -m "kubesec-diagram $TAG [skip ci]"
+            git pull --rebase origin "$GITHUB_REF_NAME"
             git push origin "HEAD:$GITHUB_REF_NAME"
           fi
       - name: Tag and GitHub release

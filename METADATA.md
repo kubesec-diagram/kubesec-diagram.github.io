@@ -1,12 +1,16 @@
 # Diagram metadata
 
-Metadata on cells in `kubesec-diagram.svg`. Edit in draw.io: Edit Data (`Ctrl+M`) on the cell.
+Metadata on cells in `kubesec-diagram.drawio.svg`. Edit in draw.io: Edit Data (`Ctrl+M`) on the cell. `kubesec-diagram.svg` is rendered from it (`npm run render`; CI does it on push): never edit that one.
 
 | Attribute | Used for |
 |---|---|
 | `tags` | filtering, levels, priority styling |
 | `slug` | pins (`pins=`), unique id of a help entry |
 | `help` | tooltip / panel text |
+| `overlay-definition` | on a legend line: its look is the overlay band of that name (`ingress`, `egress`) |
+| `overlay` | on a line: the bands drawn along it, side by side in this order: the first on the left, looking along the arrow (`egress`, `ingress,egress`) |
+| `overlay-destination` | on a box: `true` = bands end or start there, none passes through (a process several flows point at) |
+| `arrow-at-each-box` | on a line: `true` repeats its arrowhead at every box drawn over it (priority circles and `?` markers excluded). On a box: `true` always, `false` never an arrow there |
 
 ## Casing
 

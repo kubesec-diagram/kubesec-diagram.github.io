@@ -18,6 +18,7 @@ const ALLOWED = [
   "views.js",
   "METADATA.md",
   "kubesec-diagram.svg",
+  "kubesec-diagram.drawio.svg",
   "LICENSE",
   "index.html",
   "vite.config.js",

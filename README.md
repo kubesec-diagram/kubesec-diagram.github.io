@@ -19,8 +19,23 @@ Also, it is on-prem... For non on-prem, it might not be that relevant.
 
 It is made for the purpose stated above inside Telenor Norway. It doesn't reflect any internal designs, architecture or even pattern. The diagram was made for discussion, but ended up being a good cheatsheet in general. So it's released so other companies or people might use it as well.
 
+## Editing the diagram
+
+The diagram is `kubesec-diagram.drawio.svg`: open it in draw.io (the `.drawio.svg` name tells draw.io and its VS Code extension it is editable). Cell metadata: [METADATA.md](METADATA.md).
+
+`kubesec-diagram.svg` is rendered from it and committed by CI on every push: the traffic bands drawn in and draw.io's model removed, so it shows everything in any viewer and is half the size. It no longer opens in draw.io; do not edit it.
+
+```sh
+npm run dev       # uses the draw.io source; edits show on reload
+npm run render    # kubesec-diagram.svg locally (needs: npx playwright install chromium)
+npm run validate  # metadata of the source
+```
+
 ## Changelog
 
+* v2026.09.6
+  * Fixing overlay egress traffic so it goes via the overlay CNI, not "magically" out
+  * Moving things around, doing some cleanup of unneeded things and general improvements
 * v2026.09.5
   * Rebuilt on [diagram-webkit](https://github.com/diagram-webkit/diagram-webkit)
     * Took the entire rendering engine used by kubesec-diagram and put into it's own project

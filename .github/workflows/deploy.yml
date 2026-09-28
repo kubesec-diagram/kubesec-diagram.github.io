@@ -2,6 +2,11 @@ name: Deploy to GitHub Pages
 
 # Built with the latest diagram-webkit on npm, not the lockfile's. The daily
 # run brings new engine versions live without a push here.
+#
+# kubesec-diagram.svg is rendered from kubesec-diagram.drawio.svg here (line
+# overlays drawn in, draw.io's model removed), built from, and committed back
+# when it changed ([skip ci]). Commits to main are serialized with release.yml
+# (concurrency group main-commits) and rebased before the push.
 on:
   push:
     branches: [main]
@@ -10,13 +15,16 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # the rendered SVG
   pages: write
   id-token: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    concurrency:
+      group: main-commits
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -26,6 +34,20 @@ jobs:
       - run: npm ci
       - run: npm run engine:latest
       - run: npm run validate
+      - run: npx playwright install --with-deps chromium
+      - run: npm run render
+      - name: Commit the rendered SVG
+        run: |
+          git add kubesec-diagram.svg
+          if git diff --cached --quiet; then
+            echo "kubesec-diagram.svg up to date"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "render kubesec-diagram.svg [skip ci]"
+            git pull --rebase origin "$GITHUB_REF_NAME"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
       - run: npm run build
       - uses: actions/upload-pages-artifact@v4
         with:

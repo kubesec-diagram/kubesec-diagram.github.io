@@ -15,6 +15,7 @@
     ".": "./index.js",
     "./definition": "./definition.js",
     "./kubesec-diagram.svg": "./kubesec-diagram.svg",
+    "./kubesec-diagram.drawio.svg": "./kubesec-diagram.drawio.svg",
     "./package.json": "./package.json"
   },
   "files": [
@@ -24,6 +25,7 @@
     "config",
     "content",
     "kubesec-diagram.svg",
+    "kubesec-diagram.drawio.svg",
     "METADATA.md"
   ],
   "scripts": {
@@ -32,7 +34,8 @@
     "prebuild": "node scripts/changelog.mjs --write",
     "build": "vite build",
     "preview": "vite preview",
-    "validate": "diagram-webkit validate kubesec-diagram.svg --definition definition.js",
+    "validate": "diagram-webkit validate kubesec-diagram.drawio.svg --definition definition.js",
+    "render": "diagram-webkit render kubesec-diagram.drawio.svg --out kubesec-diagram.svg --definition definition.js",
     "generate": "node scripts/changelog.mjs --write && diagram-webkit tag-tree METADATA.md --out config/tag-descriptions.generated.js",
     "check": "node scripts/check-no-logic.mjs && npm run validate",
     "test:parity": "sh tests/parity/setup.sh && playwright test --config tests/parity/playwright.config.ts",
