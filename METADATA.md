@@ -68,6 +68,11 @@ Runtime semantics (diagram-webkit): an element is hidden if **any** of its topic
     - `Api.Rbac.Subject` — who is bound: User/Group, ServiceAccount
   - `Api.Admission` — validating/mutating admission
   - `Api.Apf` — API Priority and Fairness, rate limiting
+  - `Api.Controllers` — the feedback loop: controllers watch objects and create new ones through the API, with their own identity
+  - `Api.Objects` — Kubernetes objects: what you apply, and what controllers create from it
+    - `Api.Objects.Deployment` — Deployment → ReplicaSet → Pods
+    - `Api.Objects.CronJob` — CronJob → Job → Pods
+    - `Api.Objects.Custom` — any object, e.g. a custom resource, becoming more objects, cluster-scoped ones too
 - `ControlPlane` — control-plane components besides the API
   - `ControlPlane.Kubelet` — kubelet ↔ API, NodeRestriction
   - `ControlPlane.Scheduler`
@@ -137,9 +142,8 @@ Runtime semantics (diagram-webkit): an element is hidden if **any** of its topic
   - `CertManager.Issuer` — Issuer, ClusterIssuer, external CA
   - `CertManager.Certificate` — Certificate → Secret
   - `CertManager.Controller` — the cert-manager controller and what it talks to
-- `CronJob` — scheduled integrity / policy / compliance checks
+- `CronJob` — scheduled integrity / compliance checks
   - `CronJob.Integrity` — integrity checks
-  - `CronJob.Policy` — policy checks
   - `CronJob.Compliance` — compliance checks
 - `CustomOperator` — custom operators, orchestrators, Tofu
   - `CustomOperator.Namespaces` — namespace provisioning: System, Namespace, defaults
