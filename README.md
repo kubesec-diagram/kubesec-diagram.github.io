@@ -36,6 +36,11 @@ npm run validate  # metadata of the source
 * v2026.09.6
   * Fixing overlay egress traffic so it goes via the overlay CNI, not "magically" out
   * Moving things around, doing some cleanup of unneeded things and general improvements
+  * General cleanup, making things aligned, the same size and so on
+  * Removing some unneeded blocks, moving things around a little
+  * Making "Kubernetes objects" and "Controllers" to make it more clear how the engine works
+  * More tags
+  * More namespace configurables
 * v2026.09.5
   * Rebuilt on [diagram-webkit](https://github.com/diagram-webkit/diagram-webkit)
     * Took the entire rendering engine used by kubesec-diagram and put into it's own project
