@@ -13,7 +13,7 @@ Also, it is on-prem... For non on-prem, it might not be that relevant.
 
 > [!NOTE]
 > **How AI is used in this project**
-> AI is used as a development aid, not as an author of the entire project. The diagram itself is 100% human-made, and much of the explanatory content is written by humans. The interactive interface was generated with AI assistance under close human supervision, with final decisions and quality control performed by a human.
+> AI is used as a development aid, not as an author of the entire project. The diagram itself is 100% human-made, and much of the explanatory content is written by humans. The interactive interface was generated with AI assistance under close human supervision, with final decisions and quality control performed by a human. A lot of the tag-maintanance is also done with AI. Without AI, this diagram would not be as dynamic and correctly tagged as it is today. Doing this many tags on over 600 objects is a nightmare in drawio!
 
 ## Where does it come from?
 
@@ -33,6 +33,14 @@ npm run validate  # metadata of the source
 
 ## Changelog
 
+* v2026.10.1
+  * Adding a bunch of examples for many of the components. File, log, config and so on.
+  * Adding kernel activity in process with an arrow to runtime activity and node/cluster context
+  * Even more tags, also hidden tags useful for presentations
+  * Doing some minor moving around to make the boxes more aligned
+  * Updating diagram-webkit for some bugfixes and general improvements
+  * Hidden slugs to select better when doing presentations and such
+  * Adding ENVIRONMENT.md trying to standarize on fake data used in the diagram
 * v2026.09.6
   * Fixing overlay egress traffic so it goes via the overlay CNI, not "magically" out
   * Moving things around, doing some cleanup of unneeded things and general improvements

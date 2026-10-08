@@ -42,7 +42,7 @@
     "engine:latest": "npm install diagram-webkit@latest --no-save --prefer-online --no-audit --no-fund && npm ls diagram-webkit"
   },
   "dependencies": {
-    "diagram-webkit": ">=0.1.2"
+    "diagram-webkit": "^0.1.8"
   },
   "devDependencies": {
     "@playwright/test": "1.63",

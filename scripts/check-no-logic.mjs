@@ -17,6 +17,7 @@ const ALLOWED = [
   "definition.js",
   "views.js",
   "METADATA.md",
+  "ENVIRONMENT.md",
   "kubesec-diagram.svg",
   "kubesec-diagram.drawio.svg",
   "LICENSE",
