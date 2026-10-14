@@ -1,6 +1,6 @@
 {
   "name": "kubesec-diagram",
-  "version": "2026.9.6",
+  "version": "2026.10.1",
   "private": true,
   "description": "Kubernetes security diagram definition for diagram-webkit",
   "license": "MIT",
