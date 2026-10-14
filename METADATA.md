@@ -127,8 +127,8 @@ Runtime semantics (diagram-webkit): an element is hidden if **any** of its topic
   - `Network.Ingress` — direction: traffic entering a pod (all routes). The route itself is under `Ingress`
   - `Network.Egress` — traffic leaving a pod: filters → other pods' Service/EndpointSlice, egress IPs → firewall → outside
     - `Network.Egress.Gateway` — CiliumEgressGatewayPolicy
-    - `Network.Egress.RoutableIp` — routable egress IPs
-    - `Network.Egress.Firewall` — firewall / VLAN on the way out
+    - `Network.Egress.RoutableIp` — egress source IPs: node IP (SNAT), egress gateway IPs
+    - `Network.Egress.Firewall` — firewall / VLAN on the way out (optional)
   - `Network.Service` — Service ClusterIP, EndpointSlice, exposed ports
     - `Network.Service.ClusterIp` — service (type=ClusterIP)
     - `Network.Service.EndpointSlice` — EndpointSlice (pod IPs)
@@ -146,9 +146,9 @@ Runtime semantics (diagram-webkit): an element is hidden if **any** of its topic
     - `Network.Cni.HostNetwork` — `hostNetwork`
   - `Network.ClusterMesh` — cluster-to-cluster
 - `Ingress` — route of external traffic into the cluster, one child per API. Consumer carries the root
-  - `Ingress.Controller` — classic Ingress: Ingress resource, IngressProxy, and its network path (LB, service type=NodePort)
+  - `Ingress.Controller` — classic Ingress: Ingress resource, IngressProxy, and its network path (external LB, service type=NodePort)
   - `Ingress.GatewayApi` — Gateway API
-    - `Ingress.GatewayApi.Gateway` — GatewayClass, Gateway, kgateway, TLS secret, GatewayProxy and its network path (routable-ip, service type=LoadBalancer)
+    - `Ingress.GatewayApi.Gateway` — GatewayClass, Gateway, kgateway, TLS secret, GatewayProxy and its network path (LoadBalancer IP, service type=LoadBalancer)
     - `Ingress.GatewayApi.Route` — *Route, ReferenceGrant
     - `Ingress.GatewayApi.Policy` — policy attachment
 - `CertManager`
@@ -158,8 +158,9 @@ Runtime semantics (diagram-webkit): an element is hidden if **any** of its topic
 - `CronJob` — scheduled integrity / compliance checks
   - `CronJob.Integrity` — integrity checks
   - `CronJob.Compliance` — compliance checks
-- `CustomOperator` — custom operators, orchestrators, Tofu
-  - `CustomOperator.Namespaces` — namespace provisioning: System, Namespace, defaults
+- `CustomOperator` — operators, controllers, KRM: Crossplane, Tofu
+  - `CustomOperator.Crossplane` — Crossplane: your own object types, turned into resources
+  - `CustomOperator.Namespaces` — namespace provisioning: System, Namespace
   - `CustomOperator.Infrastructure` — infrastructure as code: Tofu, infrastructure automation
 - `SupplyChain`
   - `SupplyChain.Git` — git forge, protected branch, four-eyes
@@ -185,7 +186,7 @@ Runtime semantics (diagram-webkit): an element is hidden if **any** of its topic
     - `_.Frame.Container` — Container (OCI)
     - `_.Frame.Controllers` — Controllers
     - `_.Frame.CronJob` — CronJob (schedules)
-    - `_.Frame.CustomOperator` — Operator (custom)
+    - `_.Frame.CustomOperator` — Operator / Controllers / KRM
     - `_.Frame.Deployment` — Deployment / DaemonSet / StatefulSet
     - `_.Frame.KernelActivity` — Kernel activity
     - `_.Frame.KernelSecurity` — Kernel security

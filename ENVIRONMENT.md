@@ -90,6 +90,8 @@ DNS suffix `k8s-prod.fjordmart.example`:
 | exec/kernel observ. | Tetragon | `kube-system/tetragon-p8x2z` (container `export-stdout`) |
 | metrics/logs | Prometheus, Grafana, Loki | `monitoring` ns; forwarded to `siem.fjordmart.example` |
 
+Node uplink `ens192`; Cilium in VXLAN tunnel mode (`cilium_vxlan`), so pod traffic between nodes arrives decapsulated there.
+
 DNS forwarding: pod → `kube-dns` (10.96.0.10) → a CoreDNS replica → unbound
 `10.20.0.53` → recursion. CoreDNS egress is SNAT'd to its node IP, so external
 names from pods appear to unbound as the CoreDNS node's address.
@@ -231,6 +233,7 @@ Permanent date **2026-10-14, UTC**. Just enough so example logs match; not a nar
 | `03:41`→ | implant `/tmp/.kworkerd` runs `-d t.cdnx.example`; DNS C2 begins |
 | `03:48:10`–`03:48:18` | base32-label `TXT` queries to `t.cdnx.example`, ~2 s apart (CoreDNS, unbound, Hubble all log them); labels per 2 s: `traqee6ix6v5mrk7`, `traqefbozgtine3g`, `traqefpozb5337fb`, `traqefuldbgvatjj`, `traqef6xe7yh3wxh` |
 | `04:00` | DNS C2 detected / on-call paged |
+| `04:12` | on-call, no cluster tooling: `tcpdump -ni any port 53` on `worker-03` shows live queries `10.244.5.41` → CoreDNS `10.244.3.12` (`cilium_vxlan`) and `10.20.4.17` → `10.20.0.53` (`ens192`); labels `traqeg3kq7f2xwm4` (04:12:31), `traqegc5mvd4pq7a` (04:12:33); `kubectl -n shop delete pod cache-warmer` typed, not run |
 
 ## Attacker
 

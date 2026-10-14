@@ -33,6 +33,10 @@ npm run validate  # metadata of the source
 
 ## Changelog
 
+* v2026.10.2
+  * Some improvements to egress structure, lb's, names and such
+  * Adding more details and fixes to custom operators. Adding crossplane as another example
+  * Some minor adjustments to align stuff better
 * v2026.10.1
   * Adding a bunch of examples for many of the components. File, log, config and so on.
   * Adding kernel activity in process with an arrow to runtime activity and node/cluster context
